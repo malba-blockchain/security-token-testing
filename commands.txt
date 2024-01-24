@@ -1,0 +1,44 @@
+cd D:\USER\Downloads\ATLAS\Projects\ERC-1404
+
+yarn install
+
+npm i @openzeppelin/contracts
+
+npm install @chainlink/contracts
+
+yarn add --dev @nomicfoundation/hardhat-network-helpers
+
+
+yarn chain
+
+yarn start
+
+yarn deploy --reset
+
+yarn deploy --reset --network hardhat
+
+yarn deploy --reset --network polygonMumbai --show-stack-traces
+
+
+http://localhost:3000
+
+
+
+
+---------------DONE---------------
+
+Watch a video about the main ideas DONE
+
+Watch a video about the implementation  NONE
+
+
+
+--------------TODO--------------
+
+Create new security token requirements
+
+Add the code to a eth-scaffold framework
+
+Edit the code
+
+Manually test the new code

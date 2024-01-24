@@ -1,0 +1,39 @@
+Same base as W3M ERC-20 token
+
+
+Whitelisting for accredited investors 
+
+Whitelisting for non-accredited investors 
+
+Transference only between whitelisted investors address 
+
+Token lockup periods in the wallet of the holder 
+
+Minting on vesting period enforced 
+
+Array
+IssuanceNumber - Date - Max Amount
+0 - in 1 year - 3B
+1 - in 2 years 1.2 B
+2 - in 3 years 4B
+3 - in 4 years 1.5 B
+4 - in 5 years 0.3 B
+
+Have a list of whitelisters
+
+Add whitelister
+
+Remove whitelister
+
+Burn tokens of a wallet (Burn From)
+
+Burn tokens in general
+
+Not allow token divisibility nothing less than 1 share
+
+Ownership percentage restricted
+
+Account lock and release
+
+Pauser role: Bottom switch 
+
