@@ -2,9 +2,9 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -14,14 +14,22 @@ import "hardhat/console.sol";
 /**
  * @author Carlos Mario Alba Rodriguez
  */
-contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, ReentrancyGuard {
+contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, ReentrancyGuard {
 
     ////////////////// SMART CONTRACT ROLES //////////////////
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant WHITELISTER_ROLE = keccak256("WHITELISTER_ROLE");
 
     ////////////////// SMART CONTRACT VARIABLES //////////////////
+
+    bytes32 public officialDocumentationURI;
+
+    bytes32 public officialWebsite;
+
+    bytes32 public whitepaperURI;
+
     uint256 public tokenPrice;
 
     uint256 public minimumInvestmentAllowedInUSD;
@@ -35,6 +43,7 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
     uint8 public tokenOwnershipPercentageLimit;
 
     address public treasuryAddress;
+
 
     //Issuance date => amount of tokens to issue
     mapping(uint256 => uint256)[] public issuancePeriods;
@@ -63,15 +72,53 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
 
     ////////////////// SMART CONTRACT EVENTS //////////////////
 
+
+    event AccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
+    event AccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
+    event NonAccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
+    event NonAccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
+    event UpdatedOfficialDocumentationURI(bytes32 _newOfficialDocumentationURI);
+    event UpdatedOfficialWebsite(bytes32 _newOfficialWebsite);
+    event UpdatedWhitepaperURI(bytes32 _newWhitepaperURI);
+    event IssueTokens(address sender, uint256 amount);
+    event InvestFromMatic(address sender, uint256 maticAmount, uint256 totalInvestmentInUSD, uint256 tokensAmount);
+    event UpdatedTokenPrice(uint256 _newTokenPrice);
+    event UpdatedMinimumInvestmentAllowedInUSD(uint256 _newMinimumInvestmentAllowedInUSD);
+    event UpdatedMaximumInvestmentAllowedInUSD(uint256 _newMaximumInvestmentAllowedInUSD);
+    event UpdatedTreasuryAddress(address _newTreasuryAddress);
+    event TokensBurned(uint256 _amount);
+    event UpdateTokenOwnershipPercentageLimit(uint256 _newTokenOwnershipPercentageLimit);
+    event LockedInvestorAccount(address _investorAccount);
+    event UnlockedInvestorAccount(address _investorAccount);
+    event UpdatedMaticPriceFeedAddress(address _newMaticPriceFeedAddress);
+
+
+
+
+
+
+
     ////////////////// SMART CONTRACT CONSTRUCTOR //////////////////
 
-    constructor(string memory name, string memory symbol, address defaultAdmin, address pauser, address minter, address whitelister) 
-        ERC20(name, symbol) ReentrancyGuard() {
+    constructor(string memory name, string memory symbol, address _defaultAdmin, address _pauser, 
+    address _minter, address _burner, address _whitelister, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
+    uint256 _maximumSupplyPerIssuance) 
+        ERC20(name, symbol) AccessControl() Ownable() ReentrancyGuard() {
         
-        _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
-        _grantRole(PAUSER_ROLE, pauser);
-        _grantRole(MINTER_ROLE, minter);
-        _grantRole(WHITELISTER_ROLE, whitelister);
+        _grantRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
+        _grantRole(PAUSER_ROLE, _pauser);
+        _grantRole(MINTER_ROLE, _minter);
+        _grantRole(BURNER_ROLE, _burner);
+        _grantRole(WHITELISTER_ROLE, _whitelister);
+
+        maticPriceFeedAddress = _maticPriceDataFeedMock;
+
+        tokenTotalSupply = _tokenTotalSupply;
+
+        maximumSupplyPerIssuance = _maximumSupplyPerIssuance;
+
+        // Oracle on MATIC network for MATIC / USD
+        dataFeedMatic = AggregatorV3Interface(maticPriceFeedAddress);
       
     }
 
@@ -88,6 +135,9 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
 
         // Add the investor address to the accredited whitelist
         investorsWhitelist[_investorAddress].isAccreditedInvestor = true;
+
+        emit AccreditedInvestorAddedToWhiteList(msg.sender, _investorAddress);
+
     }
 
     function removeFromAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
@@ -97,6 +147,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
 
         // Remove the investor address from the accredited whitelist
         investorsWhitelist[_investorAddress].isAccreditedInvestor = false;
+
+        emit AccreditedInvestorRemovedFromWhiteList(msg.sender, _investorAddress);
     }
 
     function addToNonAccreditedInvestorWhiteList(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
@@ -109,6 +161,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
 
         // Add the investor address to the non accredited whitelist
         investorsWhitelist[_investorAddress].isNonAccreditedInvestor = true;
+
+        emit NonAccreditedInvestorAddedToWhiteList(msg.sender, _investorAddress);
     }
 
     function removeFromNonAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
@@ -118,6 +172,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
 
         // Remove the investor address from the non accredited whitelist
         investorsWhitelist[_investorAddress].isNonAccreditedInvestor = false;
+
+        emit NonAccreditedInvestorRemovedFromWhiteList(msg.sender, _investorAddress);
     }
 
     function updateTokenOwnershipPercentageLimit(uint8 _newTokenOwnershipPercentageLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -125,6 +181,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         require(_newTokenOwnershipPercentageLimit!= 0 && _newTokenOwnershipPercentageLimit<=100, "The new token ownership percentage limit must be between 1 and 100");
 
         tokenOwnershipPercentageLimit = _newTokenOwnershipPercentageLimit;
+
+        emit UpdateTokenOwnershipPercentageLimit(_newTokenOwnershipPercentageLimit);
     }
 
     function lockInvestorAccount(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
@@ -136,6 +194,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         require(investorsWhitelist[_investorAddress].isLocked == false, "The investor address is currently locked");
 
         investorsWhitelist[_investorAddress].isLocked = true;
+
+        emit LockedInvestorAccount(_investorAddress);
     }
 
     function unlockInvestorAccount(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
@@ -147,6 +207,8 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         require(investorsWhitelist[_investorAddress].isLocked == true, "The investor address is currently unlocked");
 
         investorsWhitelist[_investorAddress].isLocked = false;
+
+        emit UnlockedInvestorAccount(_investorAddress);
     }
 
     function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
@@ -170,10 +232,55 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
     }
 
     /**
+     * @dev Function to update the official documentation URI of the token
+     * @param _newOfficialDocumentationURI The new official documentation URI
+     */
+    function updateOfficialDocumentationURI(bytes32 _newOfficialDocumentationURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        //Ensure that the update is not repeated for the same parameter, just as a good practice
+        require(officialDocumentationURI != _newOfficialDocumentationURI, "The official documentation URI has already been modified to that value");
+
+        // Update the official documentation URI
+        officialDocumentationURI = _newOfficialDocumentationURI;
+
+        emit UpdatedOfficialDocumentationURI(_newOfficialDocumentationURI);
+    }
+
+    /**
+     * @dev Function to update the official website of the token
+     * @param _newOfficialWebsite The new official website
+     */
+    function updateOfficialWebsite(bytes32 _newOfficialWebsite) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        //Ensure that the update is not repeated for the same parameter, just as a good practice
+        require(officialWebsite != _newOfficialWebsite, "The official website URL has already been modified to that value");
+
+        // Update the official website URL
+        officialWebsite = _newOfficialWebsite;
+
+        emit UpdatedOfficialWebsite(_newOfficialWebsite);
+    }
+
+    /**
+     * @dev Function to update the whitepaper URI
+     * @param _newWhitepaperURI The new whitepaper URI
+     */
+    function updateWhitepaperURI(bytes32 _newWhitepaperURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        //Ensure that the update is not repeated for the same parameter, just as a good practice
+        require(whitepaperURI != _newWhitepaperURI, "The whitepaper URI has already been modified to that value");
+
+        // Update the official website URL
+        whitepaperURI = _newWhitepaperURI;
+
+        emit UpdatedWhitepaperURI(_newWhitepaperURI);
+    }
+
+    /**
      * @dev Function to issue tokens as required.
      * @param _amount The amount of new tokens to issue.
      */
-    function tokenIssuance(uint256 _amount) public onlyRole(MINTER_ROLE) nonReentrant {
+    function issueTokens(uint256 _amount) public onlyRole(MINTER_ROLE) nonReentrant {
         
         // Ensure that the amount to issue in this execution is at least 1 token
         require(_amount >= 1 * 10 ** decimals(), "Amount of tokens to issue must be at least 1 token");
@@ -184,13 +291,205 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         // Validate the amount to issue doesn't go beyond the established total supply
         uint256 newTotalSupply = SafeMath.add(totalSupply(), _amount);
         
-        require(newTotalSupply <= tokenTotalSupply * 10 ** decimals(), "Amount of HYAX tokens to issue surpases the 10,000 M tokens");
+        require(newTotalSupply <= tokenTotalSupply * 10 ** decimals(), "Amount of tokens to issue surpases the 10,000 M tokens");
 
         // Mint the specified amount of tokens to the owner
         _mint(owner(), _amount);
 
+        emit IssueTokens(msg.sender, _amount);
+
     }
 
+    /**
+     * @dev Function to validate the maximum invested amount of an investor and the limit if it's not an accredited investor.
+     * @param _totalInvestmentInUsd The total investment in USD for the current transaction.
+     * @param _investorAddress The address of the investor making the investment.
+     */
+    function validateMaximumInvestedAmountAndInvestorLimit(uint256 _totalInvestmentInUsd, address _investorAddress) public view {
+        
+        // Calculate the new total amount invested in USD by adding the current transaction's investment to the investor's total
+        uint256 newTotalAmountInvestedInUSD = _totalInvestmentInUsd + investorsWhitelist[_investorAddress].totalUsdDepositedByInvestor;
+    
+        //If the amount to buy in USD is greater than the maximum established, then validate if the investor is accredited
+        if(newTotalAmountInvestedInUSD > maximumInvestmentAllowedInUSD) {
+            require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "To buy that amount of tokens its required to be a accredited investor");
+        }
+    }
+
+    modifier investorIsOnWhiteList {
+
+        // Ensure that the sender's address is on the whitelist as accredited or non accredited investor
+        require( 
+            (investorsWhitelist[msg.sender].isAccreditedInvestor == true ||
+            investorsWhitelist[msg.sender].isNonAccreditedInvestor == true), 
+            "Investor address has not been added to the white list");
+        _;
+    }
+
+    /////////////INVESTING FUNCTIONS//////////
+
+    /**
+     * @dev Function allowing an investor on the whitelist to invest using MATIC.
+     * @notice The function is payable, and MATIC is automatically transferred to this contract with the payable tag.
+     * @return A boolean indicating the success of the investment and token transfer.
+    */
+    function investFromMatic() external investorIsOnWhiteList payable nonReentrant returns (bool){
+
+        //Calculate total tokens to return while validating minimum investment and if there are tokens left to sell
+        (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) = this.calculateTotalTokensToReturn(msg.value, getCurrentMaticPrice());
+
+        //If the amount of tokens to buy is greater than the maximum established, then validate if the investor is accredited
+        this.validateMaximumInvestedAmountAndInvestorLimit(totalInvestmentInUsd, msg.sender);
+
+        //Transfer MATIC to the treasury address
+        bool successSendingMatic = payable(treasuryAddress).send(msg.value);
+        require (successSendingMatic, "There was an error on sending the MATIC investment to the treasury");
+
+        //Transfer the token to the investor wallet
+        bool successSendingTokens = this.transfer(msg.sender, totalTokensToReturn);
+        require (successSendingTokens, "There was an error on sending back the tokens to the investor");
+
+        //Update the total amount of USD that a investor has deposited
+        investorsWhitelist[msg.sender].totalUsdDepositedByInvestor = totalInvestmentInUsd;
+
+        //Update the total amount of tokens that a investor has bought
+        investorsWhitelist[msg.sender].totalTokensBoughtByInvestor = totalTokensToReturn;
+
+        emit InvestFromMatic(msg.sender, msg.value, totalInvestmentInUsd, totalTokensToReturn);
+
+        return successSendingTokens;
+    }
+
+    /**
+     * @dev Function to update the price in USD of each token. Using 8 decimals.
+     * @param _newTokenPrice The new price of each token in USD.
+     */
+    function updateTokenPrice(uint256 _newTokenPrice) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        //Ensure that the update is not repeated for the same parameter, just as a good practice
+        require(_newTokenPrice != tokenPrice, "Token price has already been modified to that value");
+
+        // Ensure that new Token price is over a minimum of USD 0.005
+        require(_newTokenPrice >= 500000, "Price of HYAX token must be at least USD 0.005, that is 500000 with (8 decimals)");
+        
+        // Ensure that new token price is under a maximum of USD 10000 
+        require(_newTokenPrice <= 1000000000000, "Price of HYAX token must be at maximum USD 10000, that is 1000000800000 (8 decimals)");
+        
+        // Update the token price
+        tokenPrice = _newTokenPrice;
+
+        emit UpdatedTokenPrice(_newTokenPrice);
+    }
+
+
+
+    /**
+     * @dev Function to update the minimum investment allowed for an investor to make in USD.
+     * @param _newMinimumInvestmentAllowedInUSD The new minimum amount allowed for investment in USD.
+     */
+    function updateMinimumInvestmentAllowedInUSD(uint256 _newMinimumInvestmentAllowedInUSD) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        
+        // Ensure the new minimum investment is greater than zero
+        require(_newMinimumInvestmentAllowedInUSD > 0, "New minimun amount to invest, must be greater than zero");
+        
+        //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
+        require(_newMinimumInvestmentAllowedInUSD != minimumInvestmentAllowedInUSD, "Minimum investment allowed in USD has already been modified to that value");
+
+        // Ensure the new minimum investment is less or equal than the maximum
+        require(_newMinimumInvestmentAllowedInUSD <= maximumInvestmentAllowedInUSD, "New minimun amount to invest, must be less than the maximum investment allowed");
+
+        // Update the minimum investment allowed in USD
+        minimumInvestmentAllowedInUSD = _newMinimumInvestmentAllowedInUSD;
+
+        emit UpdatedMinimumInvestmentAllowedInUSD(_newMinimumInvestmentAllowedInUSD);
+    }
+
+    /**
+     * @dev Function to update the maximum investment allowed for an investor to make in USD, without being a accredited investor.
+     * @param _newMaximumInvestmentAllowedInUSD The new maximum amount allowed for investment in USD.
+     */
+    function updateMaximumInvestmentAllowedInUSD(uint256 _newMaximumInvestmentAllowedInUSD) external onlyRole(DEFAULT_ADMIN_ROLE)  {
+
+        // Ensure the new maximum investment is greater than zero
+        require(_newMaximumInvestmentAllowedInUSD > 0, "New maximum amount to invest, must be greater than zero");
+
+        //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
+        require(_newMaximumInvestmentAllowedInUSD != maximumInvestmentAllowedInUSD, "New maximum amount to invest, has already been modified to that value");
+
+        // Ensure the new maximum investment is greater or equal than the minimum
+        require(_newMaximumInvestmentAllowedInUSD >= minimumInvestmentAllowedInUSD, "New maximum amount to invest, must be greater than the minimum investment allowed");
+
+        // Update the maximum investment allowed in USD
+        maximumInvestmentAllowedInUSD = _newMaximumInvestmentAllowedInUSD;
+
+        emit UpdatedMaximumInvestmentAllowedInUSD(_newMaximumInvestmentAllowedInUSD);
+    }
+
+
+    /**
+     * @dev Function to update the address of the treasury.
+     * @param _newTreasuryAddress The new address of the treasury.
+     */
+    function updateTreasuryAddress(address _newTreasuryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        // Ensure the new treasury address is not the zero address
+        require(_newTreasuryAddress != address(0), "The treasury address can not be the zero address");
+
+        //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
+        require(_newTreasuryAddress != treasuryAddress, "Treasury address has already been modified to that value");
+
+        // Update the treasury address
+        treasuryAddress = _newTreasuryAddress;
+
+        emit UpdatedTreasuryAddress(_newTreasuryAddress);
+    }
+
+    /**
+     * @dev Function to update the address of the oracle that provides the MATIC price feed.
+     * @param _newMaticPriceFeedAddress The new address of the MATIC price feed oracle.
+     */
+    function updateMaticPriceFeedAddress(address _newMaticPriceFeedAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        
+        // Ensure the new MATIC price feed address is not the zero address
+        require(_newMaticPriceFeedAddress != address(0), "The price data feed address can not be the zero address");
+        
+        //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
+        require(_newMaticPriceFeedAddress != maticPriceFeedAddress, "MATIC price feed address has already been modified to that value");
+        
+        //Temporary data feed to perform the validation of the data feed descriptions
+        AggregatorV3Interface tempDataFeedMatic = AggregatorV3Interface(_newMaticPriceFeedAddress);
+
+        //Validate if the new address is actually a price feed address. Attempt to call the description function 
+        try tempDataFeedMatic.description() returns (string memory descriptionValue) {
+
+            //Get the hash value of the MATIC/USD string
+            bytes32 hashOfExpectedMaticFeedDescription = keccak256(abi.encodePacked('MATIC / USD'));
+
+            //Get the hash value of the description of the price data feed
+            bytes32 hashOfCurrentMaticFeedDescription = keccak256(abi.encodePacked(descriptionValue));
+            
+            //Validate the data feed is actually the address of a MATIC/USD oracle by comparing the hashes of the expected description and temporal description
+            require(hashOfExpectedMaticFeedDescription == hashOfCurrentMaticFeedDescription, "The new address does not seem to belong to a MATIC price data feed");
+        
+        } catch  {
+            //In case there is an error obtaining the description of the data feed, revert the transaction
+            revert("The new address does not seem to belong to a MATIC price data feed");
+        }
+
+        // Update the MATIC price feed address
+        maticPriceFeedAddress = _newMaticPriceFeedAddress;
+
+        // Update the MATIC price feed interface
+        dataFeedMatic = AggregatorV3Interface(maticPriceFeedAddress);
+
+        emit UpdatedMaticPriceFeedAddress(_newMaticPriceFeedAddress);
+    }
+
+    function burnTokens(uint256 _amount) public virtual onlyRole(BURNER_ROLE) {
+        _burn(_msgSender(), _amount);
+
+        emit TokensBurned(_amount);
+    }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -200,8 +499,29 @@ contract ERC1404Upgraded is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         _unpause();
     }
 
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
-        _mint(to, amount);
+
+    /////////////ORACLE PRICE FEED FUNCTIONS//////////
+
+    /**
+     * @dev Function to get the current price of MATIC in USD.
+     * @return The current price of MATIC in USD with 8 decimals.
+     */
+    function getCurrentMaticPrice() public view returns (uint256) {
+
+        try dataFeedMatic.latestRoundData() returns (
+            uint80 /*roundID*/, 
+            int256 answer,
+            uint /*startedAt*/,
+            uint /*timeStamp*/,
+            uint80 /*answeredInRound*/
+        ) 
+        {
+            return uint256(answer);
+
+        } catch  {
+            revert("There was an error obtaining the MATIC price from the oracle");
+        }
+        
     }
 
     // The following function is a override required by Solidity to inherit from ERC20 and ERC20Pausable

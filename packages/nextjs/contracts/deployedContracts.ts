@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     ERC1404Upgraded: {
-      address: "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [
@@ -23,27 +23,85 @@ const deployedContracts = {
             },
             {
               internalType: "address",
-              name: "defaultAdmin",
+              name: "_defaultAdmin",
               type: "address",
             },
             {
               internalType: "address",
-              name: "pauser",
+              name: "_pauser",
               type: "address",
             },
             {
               internalType: "address",
-              name: "minter",
+              name: "_minter",
               type: "address",
             },
             {
               internalType: "address",
-              name: "whitelister",
+              name: "_burner",
               type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_whitelister",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_maticPriceDataFeedMock",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "_tokenTotalSupply",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_maximumSupplyPerIssuance",
+              type: "uint256",
             },
           ],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "AccreditedInvestorAddedToWhiteList",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "AccreditedInvestorRemovedFromWhiteList",
+          type: "event",
         },
         {
           anonymous: false,
@@ -68,6 +126,126 @@ const deployedContracts = {
             },
           ],
           name: "Approval",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "maticAmount",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "totalInvestmentInUSD",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "tokensAmount",
+              type: "uint256",
+            },
+          ],
+          name: "InvestFromMatic",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "IssueTokens",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_investorAccount",
+              type: "address",
+            },
+          ],
+          name: "LockedInvestorAccount",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "NonAccreditedInvestorAddedToWhiteList",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "NonAccreditedInvestorRemovedFromWhiteList",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "previousOwner",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "OwnershipTransferred",
           type: "event",
         },
         {
@@ -162,6 +340,19 @@ const deployedContracts = {
           anonymous: false,
           inputs: [
             {
+              indexed: false,
+              internalType: "uint256",
+              name: "_amount",
+              type: "uint256",
+            },
+          ],
+          name: "TokensBurned",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
               indexed: true,
               internalType: "address",
               name: "from",
@@ -189,12 +380,155 @@ const deployedContracts = {
             {
               indexed: false,
               internalType: "address",
+              name: "_investorAccount",
+              type: "address",
+            },
+          ],
+          name: "UnlockedInvestorAccount",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
               name: "account",
               type: "address",
             },
           ],
           name: "Unpaused",
           type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "_newTokenOwnershipPercentageLimit",
+              type: "uint256",
+            },
+          ],
+          name: "UpdateTokenOwnershipPercentageLimit",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_newMaticPriceFeedAddress",
+              type: "address",
+            },
+          ],
+          name: "UpdatedMaticPriceFeedAddress",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "_newMaximumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+          ],
+          name: "UpdatedMaximumInvestmentAllowedInUSD",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "_newMinimumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+          ],
+          name: "UpdatedMinimumInvestmentAllowedInUSD",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "_newOfficialDocumentationURI",
+              type: "bytes32",
+            },
+          ],
+          name: "UpdatedOfficialDocumentationURI",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "_newOfficialWebsite",
+              type: "bytes32",
+            },
+          ],
+          name: "UpdatedOfficialWebsite",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "_newTokenPrice",
+              type: "uint256",
+            },
+          ],
+          name: "UpdatedTokenPrice",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "_newTreasuryAddress",
+              type: "address",
+            },
+          ],
+          name: "UpdatedTreasuryAddress",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "bytes32",
+              name: "_newWhitepaperURI",
+              type: "bytes32",
+            },
+          ],
+          name: "UpdatedWhitepaperURI",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "BURNER_ROLE",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
         },
         {
           inputs: [],
@@ -257,6 +591,19 @@ const deployedContracts = {
             },
           ],
           name: "addToAccreditedInvestorWhitelist",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "addToNonAccreditedInvestorWhiteList",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -332,11 +679,11 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "uint256",
-              name: "amount",
+              name: "_amount",
               type: "uint256",
             },
           ],
-          name: "burn",
+          name: "burnTokens",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -344,19 +691,30 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "address",
-              name: "account",
-              type: "address",
+              internalType: "uint256",
+              name: "_amount",
+              type: "uint256",
             },
             {
               internalType: "uint256",
-              name: "amount",
+              name: "_currentCryptocurrencyPrice",
               type: "uint256",
             },
           ],
-          name: "burnFrom",
-          outputs: [],
-          stateMutability: "nonpayable",
+          name: "calculateTotalTokensToReturn",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "totalInvestmentInUsd",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "totalTokensToReturn",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -394,6 +752,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getCurrentMaticPrice",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -482,6 +853,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "investFromMatic",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -550,6 +934,32 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_amount",
+              type: "uint256",
+            },
+          ],
+          name: "issueTokens",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "lockInvestorAccount",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "maticPriceFeedAddress",
           outputs: [
@@ -577,6 +987,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "maximumSupplyPerIssuance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "minimumInvestmentAllowedInUSD",
           outputs: [
             {
@@ -589,24 +1012,6 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "address",
-              name: "to",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "mint",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
           inputs: [],
           name: "name",
           outputs: [
@@ -614,6 +1019,45 @@ const deployedContracts = {
               internalType: "string",
               name: "",
               type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "officialDocumentationURI",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "officialWebsite",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
             },
           ],
           stateMutability: "view",
@@ -648,6 +1092,26 @@ const deployedContracts = {
             },
           ],
           name: "removeFromAccreditedInvestorWhitelist",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "removeFromNonAccreditedInvestorWhitelist",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "renounceOwnership",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -725,6 +1189,19 @@ const deployedContracts = {
           name: "tokenOwnershipPercentageLimit",
           outputs: [
             {
+              internalType: "uint8",
+              name: "",
+              type: "uint8",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "tokenPrice",
+          outputs: [
+            {
               internalType: "uint256",
               name: "",
               type: "uint256",
@@ -735,7 +1212,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "tokenPrice",
+          name: "tokenTotalSupply",
           outputs: [
             {
               internalType: "uint256",
@@ -813,6 +1290,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "transferOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "treasuryAddress",
           outputs: [
@@ -826,10 +1316,171 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "unlockInvestorAccount",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "unpause",
           outputs: [],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_newMaticPriceFeedAddress",
+              type: "address",
+            },
+          ],
+          name: "updateMaticPriceFeedAddress",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_newMaximumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+          ],
+          name: "updateMaximumInvestmentAllowedInUSD",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_newMinimumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+          ],
+          name: "updateMinimumInvestmentAllowedInUSD",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "_newOfficialDocumentationURI",
+              type: "bytes32",
+            },
+          ],
+          name: "updateOfficialDocumentationURI",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "_newOfficialWebsite",
+              type: "bytes32",
+            },
+          ],
+          name: "updateOfficialWebsite",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint8",
+              name: "_newTokenOwnershipPercentageLimit",
+              type: "uint8",
+            },
+          ],
+          name: "updateTokenOwnershipPercentageLimit",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_newTokenPrice",
+              type: "uint256",
+            },
+          ],
+          name: "updateTokenPrice",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_newTreasuryAddress",
+              type: "address",
+            },
+          ],
+          name: "updateTreasuryAddress",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "_newWhitepaperURI",
+              type: "bytes32",
+            },
+          ],
+          name: "updateWhitepaperURI",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_totalInvestmentInUsd",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "_investorAddress",
+              type: "address",
+            },
+          ],
+          name: "validateMaximumInvestedAmountAndInvestorLimit",
+          outputs: [],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "whitepaperURI",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
       ],
@@ -855,11 +1506,11 @@ const deployedContracts = {
           "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol",
         transferFrom:
           "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol",
-        burn: "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol",
-        burnFrom:
-          "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol",
         paused:
           "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol",
+        owner: "@openzeppelin/contracts/access/Ownable.sol",
+        renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
+        transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         DEFAULT_ADMIN_ROLE: "@openzeppelin/contracts/access/AccessControl.sol",
         getRoleAdmin: "@openzeppelin/contracts/access/AccessControl.sol",
         grantRole: "@openzeppelin/contracts/access/AccessControl.sol",
