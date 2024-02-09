@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     ERC1404Upgraded: {
-      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      address: "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf",
       abi: [
         {
           inputs: [
@@ -20,6 +20,11 @@ const deployedContracts = {
               internalType: "string",
               name: "symbol",
               type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "_tokensToIssue",
+              type: "uint256",
             },
             {
               internalType: "address",
@@ -60,6 +65,41 @@ const deployedContracts = {
               internalType: "uint256",
               name: "_maximumSupplyPerIssuance",
               type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_tokenPrice",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "_officialWebsite",
+              type: "string",
+            },
+            {
+              internalType: "string",
+              name: "_whitepaperURL",
+              type: "string",
+            },
+            {
+              internalType: "string",
+              name: "_officialDocumentationURL",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "_minimumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_maximumInvestmentAllowedInUSD",
+              type: "uint256",
+            },
+            {
+              internalType: "uint8",
+              name: "_tokenOwnershipPercentageLimit",
+              type: "uint8",
             },
           ],
           stateMutability: "nonpayable",
@@ -457,12 +497,12 @@ const deployedContracts = {
           inputs: [
             {
               indexed: false,
-              internalType: "bytes32",
-              name: "_newOfficialDocumentationURI",
-              type: "bytes32",
+              internalType: "string",
+              name: "_newOfficialDocumentationURL",
+              type: "string",
             },
           ],
-          name: "UpdatedOfficialDocumentationURI",
+          name: "UpdatedOfficialDocumentationURL",
           type: "event",
         },
         {
@@ -470,9 +510,9 @@ const deployedContracts = {
           inputs: [
             {
               indexed: false,
-              internalType: "bytes32",
+              internalType: "string",
               name: "_newOfficialWebsite",
-              type: "bytes32",
+              type: "string",
             },
           ],
           name: "UpdatedOfficialWebsite",
@@ -509,12 +549,12 @@ const deployedContracts = {
           inputs: [
             {
               indexed: false,
-              internalType: "bytes32",
-              name: "_newWhitepaperURI",
-              type: "bytes32",
+              internalType: "string",
+              name: "_newWhitepaperURL",
+              type: "string",
             },
           ],
-          name: "UpdatedWhitepaperURI",
+          name: "UpdatedWhitepaperURL",
           type: "event",
         },
         {
@@ -1026,12 +1066,12 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "officialDocumentationURI",
+          name: "officialDocumentationURL",
           outputs: [
             {
-              internalType: "bytes32",
+              internalType: "string",
               name: "",
-              type: "bytes32",
+              type: "string",
             },
           ],
           stateMutability: "view",
@@ -1042,9 +1082,9 @@ const deployedContracts = {
           name: "officialWebsite",
           outputs: [
             {
-              internalType: "bytes32",
+              internalType: "string",
               name: "",
-              type: "bytes32",
+              type: "string",
             },
           ],
           stateMutability: "view",
@@ -1377,12 +1417,12 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "bytes32",
-              name: "_newOfficialDocumentationURI",
-              type: "bytes32",
+              internalType: "string",
+              name: "_newOfficialDocumentationURL",
+              type: "string",
             },
           ],
-          name: "updateOfficialDocumentationURI",
+          name: "updateOfficialDocumentationURL",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1390,9 +1430,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "bytes32",
+              internalType: "string",
               name: "_newOfficialWebsite",
-              type: "bytes32",
+              type: "string",
             },
           ],
           name: "updateOfficialWebsite",
@@ -1442,12 +1482,12 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "bytes32",
-              name: "_newWhitepaperURI",
-              type: "bytes32",
+              internalType: "string",
+              name: "_newWhitepaperURL",
+              type: "string",
             },
           ],
-          name: "updateWhitepaperURI",
+          name: "updateWhitepaperURL",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1472,12 +1512,12 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "whitepaperURI",
+          name: "whitepaperURL",
           outputs: [
             {
-              internalType: "bytes32",
+              internalType: "string",
               name: "",
-              type: "bytes32",
+              type: "string",
             },
           ],
           stateMutability: "view",

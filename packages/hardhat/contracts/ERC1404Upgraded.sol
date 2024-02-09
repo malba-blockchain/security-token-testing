@@ -24,11 +24,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     ////////////////// SMART CONTRACT VARIABLES //////////////////
 
-    bytes32 public officialDocumentationURI;
+    string public officialDocumentationURL;
 
-    bytes32 public officialWebsite;
+    string public officialWebsite;
 
-    bytes32 public whitepaperURI;
+    string public whitepaperURL;
 
     uint256 public tokenPrice;
 
@@ -77,9 +77,9 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     event AccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
     event NonAccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
     event NonAccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
-    event UpdatedOfficialDocumentationURI(bytes32 _newOfficialDocumentationURI);
-    event UpdatedOfficialWebsite(bytes32 _newOfficialWebsite);
-    event UpdatedWhitepaperURI(bytes32 _newWhitepaperURI);
+    event UpdatedOfficialDocumentationURL(string _newOfficialDocumentationURL);
+    event UpdatedOfficialWebsite(string _newOfficialWebsite);
+    event UpdatedWhitepaperURL(string _newWhitepaperURL);
     event IssueTokens(address sender, uint256 amount);
     event InvestFromMatic(address sender, uint256 maticAmount, uint256 totalInvestmentInUSD, uint256 tokensAmount);
     event UpdatedTokenPrice(uint256 _newTokenPrice);
@@ -92,17 +92,13 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     event UnlockedInvestorAccount(address _investorAccount);
     event UpdatedMaticPriceFeedAddress(address _newMaticPriceFeedAddress);
 
-
-
-
-
-
-
     ////////////////// SMART CONTRACT CONSTRUCTOR //////////////////
 
-    constructor(string memory name, string memory symbol, address _defaultAdmin, address _pauser, 
-    address _minter, address _burner, address _whitelister, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
-    uint256 _maximumSupplyPerIssuance) 
+    constructor(string memory name, string memory symbol, uint256 _tokensToIssue, address _defaultAdmin, address _pauser, 
+        address _minter, address _burner, address _whitelister, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
+        uint256 _maximumSupplyPerIssuance, uint256 _tokenPrice, string memory _officialWebsite, string memory _whitepaperURL,
+        string memory _officialDocumentationURL, uint256 _minimumInvestmentAllowedInUSD, uint256 _maximumInvestmentAllowedInUSD,
+        uint8 _tokenOwnershipPercentageLimit) 
         ERC20(name, symbol) AccessControl() Ownable() ReentrancyGuard() {
         
         _grantRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
@@ -111,15 +107,30 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _grantRole(BURNER_ROLE, _burner);
         _grantRole(WHITELISTER_ROLE, _whitelister);
 
+        _mint(address(this), _tokensToIssue);
+
         maticPriceFeedAddress = _maticPriceDataFeedMock;
 
         tokenTotalSupply = _tokenTotalSupply;
 
         maximumSupplyPerIssuance = _maximumSupplyPerIssuance;
 
+        tokenPrice = _tokenPrice;
+
+        officialWebsite = _officialWebsite;
+
+        whitepaperURL = _whitepaperURL;
+
+        officialDocumentationURL = _officialDocumentationURL;
+
+        minimumInvestmentAllowedInUSD = _minimumInvestmentAllowedInUSD;
+
+        maximumInvestmentAllowedInUSD = _maximumInvestmentAllowedInUSD;
+
+        tokenOwnershipPercentageLimit = _tokenOwnershipPercentageLimit;
+
         // Oracle on MATIC network for MATIC / USD
         dataFeedMatic = AggregatorV3Interface(maticPriceFeedAddress);
-      
     }
 
     ////////////////// SMART CONTRACT FUNCTIONS //////////////////
@@ -211,49 +222,67 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit UnlockedInvestorAccount(_investorAddress);
     }
 
-    function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
-        
-        //Decimals in math operation. Because the cryptocurrency price feed and the token price comes with 8 decimals
-        uint256 decimalsInMathOperation = 10 ** 8;
+    function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToReturn) internal view returns (bool){
+    
+        uint256 newBalance = _totalTokensToReturn + balanceOf(msg.sender);
 
-        //Calculate the total investment in USD and divide by 10**8
-        totalInvestmentInUsd = SafeMath.div((SafeMath.mul(_amount, _currentCryptocurrencyPrice)), decimalsInMathOperation);
+        console.log("totalTokensToReturn");
 
-        //Calcuale the amount of tokens to return given the current token price and multiply it by 10**8
-        totalTokensToReturn = SafeMath.mul((SafeMath.div(totalInvestmentInUsd, tokenPrice)), decimalsInMathOperation);
+        console.log(_totalTokensToReturn);
 
-        //Validate that the amount to invest is equal or greater than the minimum investment established in USD
-        require(totalInvestmentInUsd >= minimumInvestmentAllowedInUSD, "The amount to invest must be greater than the minimum established");
+        console.log("currentBalanceOfInvestor");
 
-        //Validate that the amount of tokens to offer to the investor is equal or less than the amount that's left in the smart contract
-        require(totalTokensToReturn <= balanceOf(address(this)), "The investment made returns an amount of tokens greater than the available");
+        console.log(balanceOf(msg.sender));
 
-        return (totalInvestmentInUsd, totalTokensToReturn);
+        console.log("tokenTotalSupply");
+
+        console.log(tokenTotalSupply);
+
+        console.log("newBalance");
+
+        console.log(newBalance);
+
+
+        uint256 newPercentage = newBalance / tokenTotalSupply;
+
+        console.log("newPercentage");
+
+        console.log(newPercentage);
+
+        console.log("tokenOwnershipPercentageLimit");
+
+        console.log(tokenOwnershipPercentageLimit);
+
+        if(newPercentage <= tokenOwnershipPercentageLimit) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * @dev Function to update the official documentation URI of the token
-     * @param _newOfficialDocumentationURI The new official documentation URI
+     * @param _newOfficialDocumentationURL The new official documentation URI
      */
-    function updateOfficialDocumentationURI(bytes32 _newOfficialDocumentationURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateOfficialDocumentationURL(string memory _newOfficialDocumentationURL) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
-        //Ensure that the update is not repeated for the same parameter, just as a good practice
-        require(officialDocumentationURI != _newOfficialDocumentationURI, "The official documentation URI has already been modified to that value");
+        //Ensure that the update is not an empty parameter
+        //require(officialDocumentationURL != _newOfficialDocumentationURL, "The official documentation URI has already been modified to that value");
 
         // Update the official documentation URI
-        officialDocumentationURI = _newOfficialDocumentationURI;
+        officialDocumentationURL = _newOfficialDocumentationURL;
 
-        emit UpdatedOfficialDocumentationURI(_newOfficialDocumentationURI);
+        emit UpdatedOfficialDocumentationURL(_newOfficialDocumentationURL);
     }
 
     /**
      * @dev Function to update the official website of the token
      * @param _newOfficialWebsite The new official website
      */
-    function updateOfficialWebsite(bytes32 _newOfficialWebsite) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateOfficialWebsite(string memory _newOfficialWebsite) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
         //Ensure that the update is not repeated for the same parameter, just as a good practice
-        require(officialWebsite != _newOfficialWebsite, "The official website URL has already been modified to that value");
+        //require(officialWebsite != _newOfficialWebsite, "The official website URL has already been modified to that value");
 
         // Update the official website URL
         officialWebsite = _newOfficialWebsite;
@@ -262,18 +291,18 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     }
 
     /**
-     * @dev Function to update the whitepaper URI
-     * @param _newWhitepaperURI The new whitepaper URI
+     * @dev Function to update the whitepaper URL
+     * @param _newWhitepaperURL The new whitepaper URL
      */
-    function updateWhitepaperURI(bytes32 _newWhitepaperURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateWhitepaperURL(string memory _newWhitepaperURL) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
         //Ensure that the update is not repeated for the same parameter, just as a good practice
-        require(whitepaperURI != _newWhitepaperURI, "The whitepaper URI has already been modified to that value");
+        //require(whitepaperURL != _newWhitepaperURL, "The whitepaper URI has already been modified to that value");
 
         // Update the official website URL
-        whitepaperURI = _newWhitepaperURI;
+        whitepaperURL = _newWhitepaperURL;
 
-        emit UpdatedWhitepaperURI(_newWhitepaperURI);
+        emit UpdatedWhitepaperURL(_newWhitepaperURL);
     }
 
     /**
@@ -326,6 +355,55 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _;
     }
 
+     function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
+        
+        //Decimals in math operation. Because the cryptocurrency price feed and the token price comes with 8 decimals
+        uint256 decimalsInMathOperation = 10 ** 8;
+
+        //Calculate the total investment in USD and divide by 10**8
+        totalInvestmentInUsd = SafeMath.div((SafeMath.mul(_amount, _currentCryptocurrencyPrice)), decimalsInMathOperation);
+
+        console.log("totalInvestmentInUsd");
+
+        console.log(totalInvestmentInUsd);
+
+        //Calcuale the amount of tokens to return given the current token price and multiply it by 10**8
+        totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), tokenPrice);
+
+       console.log("tokenPrice");
+
+        console.log(tokenPrice);
+
+        console.log("decimalsInMathOperation");
+
+        console.log(decimalsInMathOperation);
+
+        console.log("totalTokensToReturn");
+
+        console.log(totalTokensToReturn);
+
+        console.log("minimumInvestmentAllowedInUSD");
+
+        console.log(minimumInvestmentAllowedInUSD);
+
+        console.log("availableTokensForInvestor");
+
+        console.log(balanceOf(address(this)));
+
+        //Validate that the amount to invest is equal or greater than the minimum investment established in USD
+        require(totalInvestmentInUsd >= minimumInvestmentAllowedInUSD, "The amount to invest must be greater than the minimum established");
+
+        //Validate that the amount of tokens the investor will get won't make him hold more tokens than the established percentage limit
+        require(tokenOwnershipUnderPercentageLimit(totalTokensToReturn) == true, "The investment makes the investor hold more tokens than the established percentage limit");
+        
+        //Validate that the amount of tokens to offer to the investor is equal or less than the amount that's left in the smart contract
+        require(totalTokensToReturn <= balanceOf(address(this)), "The investment made returns an amount of tokens greater than the available");
+
+
+        return (totalInvestmentInUsd, totalTokensToReturn);
+    }
+
+
     /////////////INVESTING FUNCTIONS//////////
 
     /**
@@ -373,7 +451,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_newTokenPrice >= 500000, "Price of HYAX token must be at least USD 0.005, that is 500000 with (8 decimals)");
         
         // Ensure that new token price is under a maximum of USD 10000 
-        require(_newTokenPrice <= 1000000000000, "Price of HYAX token must be at maximum USD 10000, that is 1000000800000 (8 decimals)");
+        require(_newTokenPrice <= 1000000000000, "Price of HYAX token must be at maximum USD 10000, that is 1000000000000 (8 decimals)");
         
         // Update the token price
         tokenPrice = _newTokenPrice;

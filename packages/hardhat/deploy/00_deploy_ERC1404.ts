@@ -42,6 +42,7 @@ const deployERC1404Upgraded: DeployFunction = async function (hre: HardhatRuntim
     // Contract constructor arguments
     args: [/*name:string*/"SecurityToken", 
     /*symbol:string*/"STO",
+    /*uint256:tokensToIssue*/100000000,
     /*address:defaultAdmin*/newOwnerAddress, 
     /*address:pauser*/newOwnerAddress,
     /*address:minter*/newOwnerAddress,
@@ -49,7 +50,15 @@ const deployERC1404Upgraded: DeployFunction = async function (hre: HardhatRuntim
     /*address:whitelister*/newOwnerAddress,
     /*address:maticPriceDataFeedMock*/addressMaticPriceDataFeedMock,
     /*uint256:tokenTotalSupply*/100000000,
-    /*uint256:maximumSupplyPerIssuance*/10000000],
+    /*uint256:maximumSupplyPerIssuance*/10000000,
+    /*uint256:tokenPrice*/500000,
+    /*string:officialWebsite*/"https://bitcoin.org/en/",
+    /*string:whitepaperURL*/"https://bitcoin.org/bitcoin.pdf",
+    /*string:officialDocumentationURL*/"https://developer.bitcoin.org/",
+    /*uint256:minimumInvestmentAllowedInUSD*/10,
+    /*uint256:maximumInvestmentAllowedInUSD*/10000,
+    /*uint256:tokenOwnershipPercentageLimit*/10
+    ],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.

@@ -39,12 +39,15 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
+Calculate again the formula to find out the percentage of tokenOwnershipUnderPercentageLimit
 
-Identify if its important to add the last function of the UML receive()
+then test again the calculateTotalTokensToReturn and finally, test the invest from matic function
+
+
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE
 
-0x498C47066AdeB22Ba23953d890eD6b540411e350
+0x498C47066AdeB22Ba23953d890eD6b540411e350 TREASURY
 
 DEFAULT_ADMIN_ROLE "0x0000000000000000000000000000000000000000000000000000000000000000"
 
