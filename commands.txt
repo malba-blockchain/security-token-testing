@@ -39,11 +39,8 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
-Calculate again the formula to find out the percentage of tokenOwnershipUnderPercentageLimit
-
-then test again the calculateTotalTokensToReturn and finally, test the invest from matic function
-
-
+Test the actual         require(newTotalSupply <= tokenTotalSupply), "Amount of tokens to issue surpases the 10,000 M tokens");
+ working on that limit
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE
 

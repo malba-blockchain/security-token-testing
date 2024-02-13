@@ -107,11 +107,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _grantRole(BURNER_ROLE, _burner);
         _grantRole(WHITELISTER_ROLE, _whitelister);
 
-        _mint(address(this), _tokensToIssue);
+        _mint(address(this), _tokensToIssue * (10**decimals()));
 
         maticPriceFeedAddress = _maticPriceDataFeedMock;
 
-        tokenTotalSupply = _tokenTotalSupply;
+        tokenTotalSupply = _tokenTotalSupply * (10**decimals());
 
         maximumSupplyPerIssuance = _maximumSupplyPerIssuance;
 
@@ -222,43 +222,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit UnlockedInvestorAccount(_investorAddress);
     }
 
-    function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToReturn) internal view returns (bool){
-    
-        uint256 newBalance = _totalTokensToReturn + balanceOf(msg.sender);
-
-        console.log("totalTokensToReturn");
-
-        console.log(_totalTokensToReturn);
-
-        console.log("currentBalanceOfInvestor");
-
-        console.log(balanceOf(msg.sender));
-
-        console.log("tokenTotalSupply");
-
-        console.log(tokenTotalSupply);
-
-        console.log("newBalance");
-
-        console.log(newBalance);
-
-
-        uint256 newPercentage = newBalance / tokenTotalSupply;
-
-        console.log("newPercentage");
-
-        console.log(newPercentage);
-
-        console.log("tokenOwnershipPercentageLimit");
-
-        console.log(tokenOwnershipPercentageLimit);
-
-        if(newPercentage <= tokenOwnershipPercentageLimit) {
-            return true;
-        }
-
-        return false;
-    }
 
     /**
      * @dev Function to update the official documentation URI of the token
@@ -320,7 +283,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         // Validate the amount to issue doesn't go beyond the established total supply
         uint256 newTotalSupply = SafeMath.add(totalSupply(), _amount);
         
-        require(newTotalSupply <= tokenTotalSupply * 10 ** decimals(), "Amount of tokens to issue surpases the 10,000 M tokens");
+        require(newTotalSupply <= tokenTotalSupply), "Amount of tokens to issue surpases the 10,000 M tokens");
 
         // Mint the specified amount of tokens to the owner
         _mint(owner(), _amount);
@@ -355,10 +318,43 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _;
     }
 
-     function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
+    modifier investorWalletIsNotLocked {
+
+        // Ensure that the sender's address is not locked
+        require(investorsWhitelist[msg.sender].isLocked == false, 
+            "Investor wallet is currently locked");
+        _;
+    }
+
+    function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToReturn) internal view returns (bool){
+        
+        console.log("_investorAddress");
+
+        console.log(tx.origin);
+
+        uint256 newBalance = _totalTokensToReturn + balanceOf(tx.origin);
+
+        console.log("newBalance");
+
+        console.log(newBalance);
+
+        uint256 amountOfTokensLimit = (tokenTotalSupply * uint256(tokenOwnershipPercentageLimit)) /100;
+
+        console.log("amountOfTokensLimit");
+
+        console.log(amountOfTokensLimit);
+
+        if(newBalance <= amountOfTokensLimit) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
         
         //Decimals in math operation. Because the cryptocurrency price feed and the token price comes with 8 decimals
-        uint256 decimalsInMathOperation = 10 ** 8;
+        uint256 decimalsInMathOperation = 10 ** (8 + 18);
 
         //Calculate the total investment in USD and divide by 10**8
         totalInvestmentInUsd = SafeMath.div((SafeMath.mul(_amount, _currentCryptocurrencyPrice)), decimalsInMathOperation);
@@ -368,9 +364,9 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         console.log(totalInvestmentInUsd);
 
         //Calcuale the amount of tokens to return given the current token price and multiply it by 10**8
-        totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), tokenPrice);
+        totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), (tokenPrice* (10**18)));
 
-       console.log("tokenPrice");
+        console.log("tokenPrice");
 
         console.log(tokenPrice);
 
@@ -399,7 +395,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         //Validate that the amount of tokens to offer to the investor is equal or less than the amount that's left in the smart contract
         require(totalTokensToReturn <= balanceOf(address(this)), "The investment made returns an amount of tokens greater than the available");
 
-
         return (totalInvestmentInUsd, totalTokensToReturn);
     }
 
@@ -412,6 +407,9 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
      * @return A boolean indicating the success of the investment and token transfer.
     */
     function investFromMatic() external investorIsOnWhiteList payable nonReentrant returns (bool){
+
+        console.log("investFromMatic - msg.value");
+        console.log(msg.value);
 
         //Calculate total tokens to return while validating minimum investment and if there are tokens left to sell
         (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) = this.calculateTotalTokensToReturn(msg.value, getCurrentMaticPrice());
@@ -458,8 +456,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         emit UpdatedTokenPrice(_newTokenPrice);
     }
-
-
 
     /**
      * @dev Function to update the minimum investment allowed for an investor to make in USD.
@@ -577,6 +573,20 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _unpause();
     }
 
+    /////////////Overwrites to be ERC 1400 compliant/////////////
+
+    function transferFrom(address from, address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
+        address spender = _msgSender();
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
+        return true;
+    }
+
+    function transfer(address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
+        address owner = _msgSender();
+        _transfer(owner, to, amount);
+        return true;
+    }
 
     /////////////ORACLE PRICE FEED FUNCTIONS//////////
 

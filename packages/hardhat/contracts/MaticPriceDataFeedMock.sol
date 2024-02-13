@@ -11,7 +11,7 @@ contract MaticPriceDataFeedMock {
     
   constructor( ) {
       roundID = 36893488147419307389;
-      answer = 90387255;
+      answer = 100000000;
       startedAt = 1700085165;
       timeStamp = 1700085165;
       answeredInRound = 36893488147419307389;

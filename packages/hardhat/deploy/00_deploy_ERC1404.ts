@@ -42,7 +42,7 @@ const deployERC1404Upgraded: DeployFunction = async function (hre: HardhatRuntim
     // Contract constructor arguments
     args: [/*name:string*/"SecurityToken", 
     /*symbol:string*/"STO",
-    /*uint256:tokensToIssue*/100000000,
+    /*uint256:tokensToIssue*/10000000,
     /*address:defaultAdmin*/newOwnerAddress, 
     /*address:pauser*/newOwnerAddress,
     /*address:minter*/newOwnerAddress,
