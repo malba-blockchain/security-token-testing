@@ -95,7 +95,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     ////////////////// SMART CONTRACT CONSTRUCTOR //////////////////
 
     constructor(string memory name, string memory symbol, uint256 _tokensToIssue, address _defaultAdmin, address _pauser, 
-        address _minter, address _burner, address _whitelister, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
+        address _minter, address _burner, address _whitelister, address _treasuryAddress, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
         uint256 _maximumSupplyPerIssuance, uint256 _tokenPrice, string memory _officialWebsite, string memory _whitepaperURL,
         string memory _officialDocumentationURL, uint256 _minimumInvestmentAllowedInUSD, uint256 _maximumInvestmentAllowedInUSD,
         uint8 _tokenOwnershipPercentageLimit) 
@@ -108,6 +108,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _grantRole(WHITELISTER_ROLE, _whitelister);
 
         _mint(address(this), _tokensToIssue * (10**decimals()));
+
+        treasuryAddress = _treasuryAddress;
 
         maticPriceFeedAddress = _maticPriceDataFeedMock;
 
@@ -139,10 +141,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function addToAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
         
         // Ensure that the investor address to add is not the zero address
-        require(_investorAddress != address(0), "Investor address to add to the accredited whitelist can not be the zero address");
+        require(_investorAddress != address(0), 
+        "Investor address to add to the accredited whitelist can not be the zero address");
 
         // Ensure that the investor address has not already been added to the accredited whitelist
-        require(investorsWhitelist[_investorAddress].isAccreditedInvestor != true, "That investor address has already been added to the accredited whitelist");
+        require(investorsWhitelist[_investorAddress].isAccreditedInvestor != true, 
+        "That investor address has already been added to the accredited whitelist");
 
         // Add the investor address to the accredited whitelist
         investorsWhitelist[_investorAddress].isAccreditedInvestor = true;
@@ -154,7 +158,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function removeFromAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address is registered on the accredited whitelist
-        require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "That investor address is not registered on the accredited whitelist");
+        require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, 
+        "That investor address is not registered on the accredited whitelist");
 
         // Remove the investor address from the accredited whitelist
         investorsWhitelist[_investorAddress].isAccreditedInvestor = false;
@@ -165,10 +170,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function addToNonAccreditedInvestorWhiteList(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
         
         // Ensure that the investor address to add is not the zero address
-        require(_investorAddress != address(0), "Investor address to add to the non accredited whitelist can not be the zero address");
+        require(_investorAddress != address(0), 
+        "Investor address to add to the non accredited whitelist can not be the zero address");
 
         // Ensure that the investor address has not already been added to the non accredited whitelist
-        require(investorsWhitelist[_investorAddress].isNonAccreditedInvestor != true, "That investor address has already been added to the non accredited whitelist");
+        require(investorsWhitelist[_investorAddress].isNonAccreditedInvestor != true, 
+        "That investor address has already been added to the non accredited whitelist");
 
         // Add the investor address to the non accredited whitelist
         investorsWhitelist[_investorAddress].isNonAccreditedInvestor = true;
@@ -179,7 +186,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function removeFromNonAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address is registered on the non accredited whitelist
-        require(investorsWhitelist[_investorAddress].isNonAccreditedInvestor == true, "That investor address is not registered on the non accredited whitelist");
+        require(investorsWhitelist[_investorAddress].isNonAccreditedInvestor == true, 
+        "That investor address is not registered on the non accredited whitelist");
 
         // Remove the investor address from the non accredited whitelist
         investorsWhitelist[_investorAddress].isNonAccreditedInvestor = false;
@@ -189,7 +197,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     function updateTokenOwnershipPercentageLimit(uint8 _newTokenOwnershipPercentageLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
-        require(_newTokenOwnershipPercentageLimit!= 0 && _newTokenOwnershipPercentageLimit<=100, "The new token ownership percentage limit must be between 1 and 100");
+        require(_newTokenOwnershipPercentageLimit!= 0 && _newTokenOwnershipPercentageLimit<=100, 
+        "The new token ownership percentage limit must be between 1 and 100");
 
         tokenOwnershipPercentageLimit = _newTokenOwnershipPercentageLimit;
 
@@ -202,7 +211,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_investorAddress != address(0), "Investor address to lock can not be the zero address");
 
         // Ensure that the investor address to lock is not currently locked
-        require(investorsWhitelist[_investorAddress].isLocked == false, "The investor address is currently locked");
+        require(investorsWhitelist[_investorAddress].isLocked == false, 
+        "The investor address is currently locked");
 
         investorsWhitelist[_investorAddress].isLocked = true;
 
@@ -215,7 +225,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_investorAddress != address(0), "Investor address to unlock can not be the zero address");
 
         // Ensure that the investor address to unlock is not currently unlocked
-        require(investorsWhitelist[_investorAddress].isLocked == true, "The investor address is currently unlocked");
+        require(investorsWhitelist[_investorAddress].isLocked == true, 
+        "The investor address is currently unlocked");
 
         investorsWhitelist[_investorAddress].isLocked = false;
 
@@ -278,12 +289,14 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_amount >= 1 * 10 ** decimals(), "Amount of tokens to issue must be at least 1 token");
         
         // Ensure that the amount to issue in this execution is below the maximum supply per issuance
-        require(_amount <= maximumSupplyPerIssuance * 10 ** decimals(), "Amount of tokens to issue at a time must be below the maximum supply per issuance");
+        require(_amount <= maximumSupplyPerIssuance * 10 ** decimals(), 
+        "Amount of tokens to issue at a time must be below the maximum supply per issuance");
         
         // Validate the amount to issue doesn't go beyond the established total supply
         uint256 newTotalSupply = SafeMath.add(totalSupply(), _amount);
-        
-        require(newTotalSupply <= tokenTotalSupply), "Amount of tokens to issue surpases the 10,000 M tokens");
+
+        require(newTotalSupply <= tokenTotalSupply, 
+        "Amount of tokens to issue surpases established total token supply");
 
         // Mint the specified amount of tokens to the owner
         _mint(owner(), _amount);
@@ -304,7 +317,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     
         //If the amount to buy in USD is greater than the maximum established, then validate if the investor is accredited
         if(newTotalAmountInvestedInUSD > maximumInvestmentAllowedInUSD) {
-            require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "To buy that amount of tokens its required to be a accredited investor");
+            require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "To buy that amount of tokens its required to be an accredited investor");
         }
     }
 
@@ -314,7 +327,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require( 
             (investorsWhitelist[msg.sender].isAccreditedInvestor == true ||
             investorsWhitelist[msg.sender].isNonAccreditedInvestor == true), 
-            "Investor address has not been added to the white list");
+            "Investor address is not in the investor whitelist");
         _;
     }
 
@@ -326,13 +339,13 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _;
     }
 
-    function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToReturn) internal view returns (bool){
+    function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToSend, address _tokenDestination) internal view returns (bool){
         
         console.log("_investorAddress");
 
-        console.log(tx.origin);
+        console.log(_tokenDestination);
 
-        uint256 newBalance = _totalTokensToReturn + balanceOf(tx.origin);
+        uint256 newBalance = _totalTokensToSend + balanceOf(_tokenDestination);
 
         console.log("newBalance");
 
@@ -364,7 +377,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         console.log(totalInvestmentInUsd);
 
         //Calcuale the amount of tokens to return given the current token price and multiply it by 10**8
-        totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), (tokenPrice* (10**18)));
+        totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), (tokenPrice));
 
         console.log("tokenPrice");
 
@@ -387,13 +400,16 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         console.log(balanceOf(address(this)));
 
         //Validate that the amount to invest is equal or greater than the minimum investment established in USD
-        require(totalInvestmentInUsd >= minimumInvestmentAllowedInUSD, "The amount to invest must be greater than the minimum established");
+        require(totalInvestmentInUsd >= minimumInvestmentAllowedInUSD, 
+        "The amount to invest must be greater than the minimum established");
 
         //Validate that the amount of tokens the investor will get won't make him hold more tokens than the established percentage limit
-        require(tokenOwnershipUnderPercentageLimit(totalTokensToReturn) == true, "The investment makes the investor hold more tokens than the established percentage limit");
+        require(tokenOwnershipUnderPercentageLimit(totalTokensToReturn, tx.origin) == true, 
+        "The investment makes the investor hold more tokens than the established percentage limit");
         
         //Validate that the amount of tokens to offer to the investor is equal or less than the amount that's left in the smart contract
-        require(totalTokensToReturn <= balanceOf(address(this)), "The investment made returns an amount of tokens greater than the available");
+        require(totalTokensToReturn <= balanceOf(address(this)), 
+        "The investment made returns an amount of tokens greater than the available");
 
         return (totalInvestmentInUsd, totalTokensToReturn);
     }
@@ -445,11 +461,13 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         //Ensure that the update is not repeated for the same parameter, just as a good practice
         require(_newTokenPrice != tokenPrice, "Token price has already been modified to that value");
 
-        // Ensure that new Token price is over a minimum of USD 0.005
-        require(_newTokenPrice >= 500000, "Price of HYAX token must be at least USD 0.005, that is 500000 with (8 decimals)");
+        // Ensure that new token price is over a minimum of USD 0.001
+        require(_newTokenPrice >= 100000, 
+        "Price of token must be at least USD 0.001, that is 100000 with (8 decimals)");
         
         // Ensure that new token price is under a maximum of USD 10000 
-        require(_newTokenPrice <= 1000000000000, "Price of HYAX token must be at maximum USD 10000, that is 1000000000000 (8 decimals)");
+        require(_newTokenPrice <= 1000000000000, 
+        "Price of token must be at maximum USD 10000, that is 1000000000000 (8 decimals)");
         
         // Update the token price
         tokenPrice = _newTokenPrice;
@@ -464,13 +482,16 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function updateMinimumInvestmentAllowedInUSD(uint256 _newMinimumInvestmentAllowedInUSD) external onlyRole(DEFAULT_ADMIN_ROLE) {
         
         // Ensure the new minimum investment is greater than zero
-        require(_newMinimumInvestmentAllowedInUSD > 0, "New minimun amount to invest, must be greater than zero");
+        require(_newMinimumInvestmentAllowedInUSD > 0, 
+        "New minimun amount to invest, must be greater than zero");
         
         //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
-        require(_newMinimumInvestmentAllowedInUSD != minimumInvestmentAllowedInUSD, "Minimum investment allowed in USD has already been modified to that value");
+        require(_newMinimumInvestmentAllowedInUSD != minimumInvestmentAllowedInUSD, 
+        "Minimum investment allowed in USD has already been modified to that value");
 
         // Ensure the new minimum investment is less or equal than the maximum
-        require(_newMinimumInvestmentAllowedInUSD <= maximumInvestmentAllowedInUSD, "New minimun amount to invest, must be less than the maximum investment allowed");
+        require(_newMinimumInvestmentAllowedInUSD <= maximumInvestmentAllowedInUSD, 
+        "New minimun amount to invest, must be less than the maximum investment allowed");
 
         // Update the minimum investment allowed in USD
         minimumInvestmentAllowedInUSD = _newMinimumInvestmentAllowedInUSD;
@@ -485,13 +506,16 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function updateMaximumInvestmentAllowedInUSD(uint256 _newMaximumInvestmentAllowedInUSD) external onlyRole(DEFAULT_ADMIN_ROLE)  {
 
         // Ensure the new maximum investment is greater than zero
-        require(_newMaximumInvestmentAllowedInUSD > 0, "New maximum amount to invest, must be greater than zero");
+        require(_newMaximumInvestmentAllowedInUSD > 0, 
+        "New maximum amount to invest, must be greater than zero");
 
         //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
-        require(_newMaximumInvestmentAllowedInUSD != maximumInvestmentAllowedInUSD, "New maximum amount to invest, has already been modified to that value");
+        require(_newMaximumInvestmentAllowedInUSD != maximumInvestmentAllowedInUSD, 
+        "New maximum amount to invest, has already been modified to that value");
 
         // Ensure the new maximum investment is greater or equal than the minimum
-        require(_newMaximumInvestmentAllowedInUSD >= minimumInvestmentAllowedInUSD, "New maximum amount to invest, must be greater than the minimum investment allowed");
+        require(_newMaximumInvestmentAllowedInUSD >= minimumInvestmentAllowedInUSD, 
+        "New maximum amount to invest, must be greater than the minimum investment allowed");
 
         // Update the maximum investment allowed in USD
         maximumInvestmentAllowedInUSD = _newMaximumInvestmentAllowedInUSD;
@@ -510,7 +534,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_newTreasuryAddress != address(0), "The treasury address can not be the zero address");
 
         //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
-        require(_newTreasuryAddress != treasuryAddress, "Treasury address has already been modified to that value");
+        require(_newTreasuryAddress != treasuryAddress, 
+        "Treasury address has already been modified to that value");
 
         // Update the treasury address
         treasuryAddress = _newTreasuryAddress;
@@ -525,10 +550,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function updateMaticPriceFeedAddress(address _newMaticPriceFeedAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         
         // Ensure the new MATIC price feed address is not the zero address
-        require(_newMaticPriceFeedAddress != address(0), "The price data feed address can not be the zero address");
+        require(_newMaticPriceFeedAddress != address(0), 
+        "The price data feed address can not be the zero address");
         
         //Ensure that the update transaction is not repeated for the same parameter, just as a good practice
-        require(_newMaticPriceFeedAddress != maticPriceFeedAddress, "MATIC price feed address has already been modified to that value");
+        require(_newMaticPriceFeedAddress != maticPriceFeedAddress, 
+        "MATIC price feed address has already been modified to that value");
         
         //Temporary data feed to perform the validation of the data feed descriptions
         AggregatorV3Interface tempDataFeedMatic = AggregatorV3Interface(_newMaticPriceFeedAddress);
@@ -543,7 +570,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
             bytes32 hashOfCurrentMaticFeedDescription = keccak256(abi.encodePacked(descriptionValue));
             
             //Validate the data feed is actually the address of a MATIC/USD oracle by comparing the hashes of the expected description and temporal description
-            require(hashOfExpectedMaticFeedDescription == hashOfCurrentMaticFeedDescription, "The new address does not seem to belong to a MATIC price data feed");
+            require(hashOfExpectedMaticFeedDescription == hashOfCurrentMaticFeedDescription, 
+            "The new address does not seem to belong to a MATIC price data feed");
         
         } catch  {
             //In case there is an error obtaining the description of the data feed, revert the transaction
@@ -576,6 +604,17 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     /////////////Overwrites to be ERC 1400 compliant/////////////
 
     function transferFrom(address from, address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
+
+        //Validate the destination address in on the whitelist before doing the transfer
+        require( 
+            (investorsWhitelist[to].isAccreditedInvestor == true ||
+            investorsWhitelist[to].isNonAccreditedInvestor == true), 
+            "Destination address is not in the investor whitelist");
+
+        //Validate that the amount of tokens the destination will get won't make him hold more tokens than the established percentage limit
+        require(tokenOwnershipUnderPercentageLimit(amount, to) == true, 
+        "The investment makes the destination hold more tokens than the established percentage limit");
+
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
@@ -583,6 +622,17 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     }
 
     function transfer(address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
+        
+        //Validate the destination address in on the whitelist before doing the transfer
+        require( 
+            (investorsWhitelist[to].isAccreditedInvestor == true ||
+            investorsWhitelist[to].isNonAccreditedInvestor == true), 
+            "Destination address is not in the investor whitelist");
+
+        //Validate that the amount of tokens the destination will get won't make him hold more tokens than the established percentage limit
+        require(tokenOwnershipUnderPercentageLimit(amount, to) == true, 
+        "The investment makes the destination hold more tokens than the established percentage limit");
+
         address owner = _msgSender();
         _transfer(owner, to, amount);
         return true;

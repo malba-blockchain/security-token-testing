@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     ERC1404Upgraded: {
-      address: "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+      address: "0x851356ae760d987E095750cCeb3bC6014560891C",
       abi: [
         {
           inputs: [
@@ -49,6 +49,11 @@ const deployedContracts = {
             {
               internalType: "address",
               name: "_whitelister",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_treasuryAddress",
               type: "address",
             },
             {
