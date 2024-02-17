@@ -39,7 +39,8 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
-Keep testing approve function and transfer restrictions to non whitelisted addresses
+Continue testing from approve function to down
+
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE
 

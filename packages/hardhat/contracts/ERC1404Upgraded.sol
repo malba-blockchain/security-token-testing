@@ -72,7 +72,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     ////////////////// SMART CONTRACT EVENTS //////////////////
 
-
     event AccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
     event AccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
     event NonAccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
@@ -137,7 +136,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     ////////////////// SMART CONTRACT FUNCTIONS //////////////////
 
-  
     function addToAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
         
         // Ensure that the investor address to add is not the zero address
@@ -152,7 +150,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         investorsWhitelist[_investorAddress].isAccreditedInvestor = true;
 
         emit AccreditedInvestorAddedToWhiteList(msg.sender, _investorAddress);
-
     }
 
     function removeFromAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
@@ -317,7 +314,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     
         //If the amount to buy in USD is greater than the maximum established, then validate if the investor is accredited
         if(newTotalAmountInvestedInUSD > maximumInvestmentAllowedInUSD) {
-            require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "To buy that amount of tokens its required to be an accredited investor");
+            require(investorsWhitelist[_investorAddress].isAccreditedInvestor == true, "To get that amount of tokens its required to be an accredited investor");
         }
     }
 
@@ -424,26 +421,27 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     */
     function investFromMatic() external investorIsOnWhiteList payable nonReentrant returns (bool){
 
-        console.log("investFromMatic - msg.value");
-        console.log(msg.value);
-
         //Calculate total tokens to return while validating minimum investment and if there are tokens left to sell
-        (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) = this.calculateTotalTokensToReturn(msg.value, getCurrentMaticPrice());
-
+        (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) = calculateTotalTokensToReturn(msg.value, getCurrentMaticPrice());
+        console.log("Goes here 1");
         //If the amount of tokens to buy is greater than the maximum established, then validate if the investor is accredited
-        this.validateMaximumInvestedAmountAndInvestorLimit(totalInvestmentInUsd, msg.sender);
+        validateMaximumInvestedAmountAndInvestorLimit(totalInvestmentInUsd, msg.sender);
+        console.log("Goes here 2");
 
         //Transfer MATIC to the treasury address
         bool successSendingMatic = payable(treasuryAddress).send(msg.value);
         require (successSendingMatic, "There was an error on sending the MATIC investment to the treasury");
-
+        console.log("Goes here 3");
         //Transfer the token to the investor wallet
+
+        console.log("totalTokensToReturn");
+        console.log(totalTokensToReturn);
         bool successSendingTokens = this.transfer(msg.sender, totalTokensToReturn);
         require (successSendingTokens, "There was an error on sending back the tokens to the investor");
-
+        console.log("Goes here 4");
         //Update the total amount of USD that a investor has deposited
         investorsWhitelist[msg.sender].totalUsdDepositedByInvestor = totalInvestmentInUsd;
-
+        console.log("Goes here 5");
         //Update the total amount of tokens that a investor has bought
         investorsWhitelist[msg.sender].totalTokensBoughtByInvestor = totalTokensToReturn;
 
@@ -603,6 +601,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     /////////////Overwrites to be ERC 1400 compliant/////////////
 
+
     function transferFrom(address from, address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the transfer
@@ -615,6 +614,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(tokenOwnershipUnderPercentageLimit(amount, to) == true, 
         "The investment makes the destination hold more tokens than the established percentage limit");
 
+        //If the amount of tokens to transfer is greater than the maximum established, then validate if the investor is accredited
+        uint256 totalTokenValueInUsd = amount * tokenPrice;
+        validateMaximumInvestedAmountAndInvestorLimit(totalTokenValueInUsd, to);
+
+        //Original transfer function code
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
@@ -633,10 +637,72 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(tokenOwnershipUnderPercentageLimit(amount, to) == true, 
         "The investment makes the destination hold more tokens than the established percentage limit");
 
+        //If the amount of tokens to transfer is greater than the maximum established, then validate if the investor is accredited
+        uint256 totalTokenValueInUsd = amount * tokenPrice;
+        validateMaximumInvestedAmountAndInvestorLimit(totalTokenValueInUsd, to);
+
+        //Original transfer function code
         address owner = _msgSender();
+
+        console.log("ownerToSend");
+        console.log(owner);
         _transfer(owner, to, amount);
         return true;
     }
+
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+
+        //Validate the destination address in on the whitelist before doing the approval
+        require( 
+            (investorsWhitelist[spender].isAccreditedInvestor == true ||
+            investorsWhitelist[spender].isNonAccreditedInvestor == true), 
+            "Destination address is not in the investor whitelist");
+
+        //Validate that the amount of tokens the destination will get won't make him hold more tokens than the established percentage limit
+        require(tokenOwnershipUnderPercentageLimit(amount, spender) == true, 
+        "The investment makes the destination hold more tokens than the established percentage limit");
+
+        //Original transfer function code
+        address owner = _msgSender();
+        _approve(owner, spender, amount);
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue) public virtual override returns (bool) {
+
+        //Validate the destination address in on the whitelist before doing the increase of allowance
+        require( 
+            (investorsWhitelist[spender].isAccreditedInvestor == true ||
+            investorsWhitelist[spender].isNonAccreditedInvestor == true), 
+            "Destination address is not in the investor whitelist");
+
+        //Validate that the amount of tokens the destination will get won't make him hold more tokens than the established percentage limit
+        require(tokenOwnershipUnderPercentageLimit(addedValue, spender) == true, 
+        "The investment makes the destination hold more tokens than the established percentage limit");
+
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override returns (bool) {
+
+        //Validate the destination address in on the whitelist before doing the decrease of allowance
+        require( 
+            (investorsWhitelist[spender].isAccreditedInvestor == true ||
+            investorsWhitelist[spender].isNonAccreditedInvestor == true), 
+            "Destination address is not in the investor whitelist");
+
+        address owner = _msgSender();
+        uint256 currentAllowance = allowance(owner, spender);
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
 
     /////////////ORACLE PRICE FEED FUNCTIONS//////////
 
