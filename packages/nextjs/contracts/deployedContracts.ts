@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     ERC1404Upgraded: {
-      address: "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+      address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
       abi: [
         {
           inputs: [
@@ -947,7 +947,12 @@ const deployedContracts = {
             },
             {
               internalType: "bool",
-              name: "isLocked",
+              name: "isLockedByInvestor",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "isLockedByIssuer",
               type: "bool",
             },
           ],
@@ -992,6 +997,13 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "lockInvestorAccountByInvestor",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -999,7 +1011,7 @@ const deployedContracts = {
               type: "address",
             },
           ],
-          name: "lockInvestorAccount",
+          name: "lockInvestorAccountByIssuer",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1361,6 +1373,13 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "unlockInvestorAccountByInvestor",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -1368,7 +1387,7 @@ const deployedContracts = {
               type: "address",
             },
           ],
-          name: "unlockInvestorAccount",
+          name: "unlockInvestorAccountByIssuer",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1376,6 +1395,37 @@ const deployedContracts = {
         {
           inputs: [],
           name: "unpause",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_newLockedUpTimeInHours",
+              type: "uint256",
+            },
+          ],
+          name: "updateLockupTimeAsInvestor",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_investorAdddress",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "_newLockedUpTimeInHours",
+              type: "uint256",
+            },
+          ],
+          name: "updateLockupTimeAsIssuer",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",

@@ -1,11 +1,10 @@
-Same base as W3M ERC-20 token
+Same base as W3M ERC-20 token DONE
 
+Whitelisting for accredited investors DONE
 
-Whitelisting for accredited investors 
+Whitelisting for non-accredited investors  DONE
 
-Whitelisting for non-accredited investors 
-
-Transference only between whitelisted investors address 
+Transference only between whitelisted investors address  DONE
 
 Token lockup periods in the wallet of the holder 
 

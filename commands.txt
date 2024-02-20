@@ -39,7 +39,29 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
-Continue testing from approve function to down
+
+Test every lockup function
+
+lockInvestorAccountByInvestor
+unlockInvestorAccountByInvestor
+
+lockInvestorAccountByIssuer
+unlockInvestorAccountByIssuer
+
+updateLockupTimeAsIssuer
+updateLockupTimeAsInvestor
+
+Identify whats wrong with the parameter hours in updateLockupTimeAsInvestor
+
+1. Recieve as parameter an amount of time
+2. The smart contract stores the timestamp when it will unlock
+3. Transfer functions validate using a modifier that the current date is greater than the walletLockUpTime
+
+For investors the new time can not be less than the old time what it does is to increase the lockup time from the previous one
+
+
+
+
 
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE

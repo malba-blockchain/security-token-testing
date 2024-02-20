@@ -56,7 +56,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         uint256 totalTokensBoughtByInvestor;
         uint256 totalUsdDepositedByInvestor;
         uint256 walletLockUpTime;
-        bool isLocked;
+        bool isLockedByInvestor;
+        bool isLockedByIssuer;
     }
 
     /**
@@ -202,43 +203,65 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit UpdateTokenOwnershipPercentageLimit(_newTokenOwnershipPercentageLimit);
     }
 
-    function lockInvestorAccount(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
+    function lockInvestorAccountByInvestor() external investorIsOnWhiteList {
+
+        // Ensure that the investor address to lock is not currently locked
+        require(investorsWhitelist[msg.sender].isLockedByInvestor == false, 
+        "The investor address is currently locked");
+
+        // Lock the account as investor
+        investorsWhitelist[msg.sender].isLockedByInvestor = true;
+
+        emit LockedInvestorAccount(msg.sender);
+    }
+
+    function unlockInvestorAccountByInvestor() external investorIsOnWhiteList {
+
+        // Ensure that the investor address to unlock is not currently unlocked
+        require(investorsWhitelist[msg.sender].isLockedByInvestor == true, 
+        "The investor address is currently unlocked");
+
+        // Unlock the account as investor
+        investorsWhitelist[msg.sender].isLockedByInvestor = false;
+
+        emit LockedInvestorAccount(msg.sender);
+    }
+
+    function lockInvestorAccountByIssuer(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address to lock is not the zero address
         require(_investorAddress != address(0), "Investor address to lock can not be the zero address");
 
-        // Ensure that the investor address to lock is not currently locked
-        require(investorsWhitelist[_investorAddress].isLocked == false, 
+        // Ensure that the investor address to lock is not currently locked by the issuer
+        require(investorsWhitelist[_investorAddress].isLockedByIssuer == false, 
         "The investor address is currently locked");
 
-        investorsWhitelist[_investorAddress].isLocked = true;
+        // Lock the account as issuer
+        investorsWhitelist[_investorAddress].isLockedByIssuer = true;
 
         emit LockedInvestorAccount(_investorAddress);
     }
 
-    function unlockInvestorAccount(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
+    function unlockInvestorAccountByIssuer(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address to unlock is not the zero address
         require(_investorAddress != address(0), "Investor address to unlock can not be the zero address");
 
         // Ensure that the investor address to unlock is not currently unlocked
-        require(investorsWhitelist[_investorAddress].isLocked == true, 
+        require(investorsWhitelist[_investorAddress].isLockedByIssuer == true, 
         "The investor address is currently unlocked");
 
-        investorsWhitelist[_investorAddress].isLocked = false;
+        // Unlock the account as issuer
+        investorsWhitelist[_investorAddress].isLockedByIssuer = false;
 
         emit UnlockedInvestorAccount(_investorAddress);
     }
-
 
     /**
      * @dev Function to update the official documentation URI of the token
      * @param _newOfficialDocumentationURL The new official documentation URI
      */
     function updateOfficialDocumentationURL(string memory _newOfficialDocumentationURL) external onlyRole(DEFAULT_ADMIN_ROLE) {
-
-        //Ensure that the update is not an empty parameter
-        //require(officialDocumentationURL != _newOfficialDocumentationURL, "The official documentation URI has already been modified to that value");
 
         // Update the official documentation URI
         officialDocumentationURL = _newOfficialDocumentationURL;
@@ -252,9 +275,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
      */
     function updateOfficialWebsite(string memory _newOfficialWebsite) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
-        //Ensure that the update is not repeated for the same parameter, just as a good practice
-        //require(officialWebsite != _newOfficialWebsite, "The official website URL has already been modified to that value");
-
         // Update the official website URL
         officialWebsite = _newOfficialWebsite;
 
@@ -266,9 +286,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
      * @param _newWhitepaperURL The new whitepaper URL
      */
     function updateWhitepaperURL(string memory _newWhitepaperURL) external onlyRole(DEFAULT_ADMIN_ROLE) {
-
-        //Ensure that the update is not repeated for the same parameter, just as a good practice
-        //require(whitepaperURL != _newWhitepaperURL, "The whitepaper URI has already been modified to that value");
 
         // Update the official website URL
         whitepaperURL = _newWhitepaperURL;
@@ -299,7 +316,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _mint(owner(), _amount);
 
         emit IssueTokens(msg.sender, _amount);
-
     }
 
     /**
@@ -330,9 +346,17 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     modifier investorWalletIsNotLocked {
 
-        // Ensure that the sender's address is not locked
-        require(investorsWhitelist[msg.sender].isLocked == false, 
-            "Investor wallet is currently locked");
+        // Ensure that the sender's address is not locked by the investor
+        require(investorsWhitelist[msg.sender].isLockedByInvestor == false, 
+            "Investor wallet is currently locked by the investor");
+
+        // Ensure that the sender's address is not locked by the issuer
+        require(investorsWhitelist[msg.sender].isLockedByIssuer == false, 
+            "Investor wallet is currently locked by the issuer");
+
+        // Ensure that the sender's address is not under a current lock period
+        require(investorsWhitelist[msg.sender].walletLockUpTime < block.timestamp, 
+            "Investor wallet is currently under lock time");
         _;
     }
 
@@ -448,6 +472,65 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit InvestFromMatic(msg.sender, msg.value, totalInvestmentInUsd, totalTokensToReturn);
 
         return successSendingTokens;
+    }
+
+    /**
+     * @dev Function to update the lockup time of a wallet as the investor
+     * @param _newLockedUpTimeInHours The time a investor wallet is going to be locked up
+     */
+    function updateLockupTimeAsInvestor(uint256 _newLockedUpTimeInHours) external investorIsOnWhiteList {
+
+        //Ensure that the lockup time is not zero
+        require(_newLockedUpTimeInHours != 0, "Locking time must be greater than zero");
+
+        //Get the hour format from solidity
+        uint256 hour = 1 minutes;
+
+        //Calculate the lock up time to add in ours
+        uint256 lockedUpTimeToAdd = _newLockedUpTimeInHours * hour;
+
+        //Initialize the current locked time left in zero
+        uint256 currentlockedTimeLeft = 0;
+
+        //Verify is there is any current locked time Left
+        if(investorsWhitelist[msg.sender].walletLockUpTime > block.timestamp) {
+            
+            //If that's the case, calculate the current locked time Left
+            currentlockedTimeLeft = investorsWhitelist[msg.sender].walletLockUpTime - block.timestamp;
+        }
+
+        //Update the wallet lock up time based on the new lock time and the previous one, if there was none then that value is zero
+        investorsWhitelist[msg.sender].walletLockUpTime = block.timestamp + lockedUpTimeToAdd + currentlockedTimeLeft;
+    }
+
+    /**
+     * @dev Function to update the lockup time of a wallet as the issuer
+     * @param _investorAdddress The address of the investor wallet that will be locked up 
+     @param _newLockedUpTimeInHours The time a investor wallet is going to be locked up
+     */
+    function updateLockupTimeAsIssuer(address _investorAdddress, uint256 _newLockedUpTimeInHours) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
+        //Ensure that the lockup time is not zero
+        require(_newLockedUpTimeInHours != 0, "Locking time must be greater than zero");
+
+        //Get the hour format from solidity
+        uint256 hour = 1 minutes;
+
+        //Calculate the lock up time to add in ours
+        uint256 lockedUpTimeToAdd = _newLockedUpTimeInHours * hour;
+
+        //Initialize the current locked time left in zero
+        uint256 currentlockedTimeLeft = 0;
+
+        //Verify is there is any current locked time Left
+        if(investorsWhitelist[_investorAdddress].walletLockUpTime > block.timestamp) {
+            
+            //If that's the case, calculate the current locked time Left
+            currentlockedTimeLeft = investorsWhitelist[_investorAdddress].walletLockUpTime - block.timestamp;
+        }
+
+        //Update the wallet lock up time based on the new lock time and the previous one, if there was none then that value is zero
+        investorsWhitelist[_investorAdddress].walletLockUpTime = block.timestamp + lockedUpTimeToAdd + currentlockedTimeLeft;
     }
 
     /**
