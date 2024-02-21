@@ -39,27 +39,26 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
-
 Test every lockup function
 
-lockInvestorAccountByInvestor
-unlockInvestorAccountByInvestor
+1. Add to accreditedwhitelist 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8
+2. Add to accreditedwhitelist 0x498C47066AdeB22Ba23953d890eD6b540411e350
+
+3. investFromMatic 9000000000000000000000 in tokens several times
+4. Transfer 1000000000000000000000000 to 0x498C47066AdeB22Ba23953d890eD6b540411e350
+
+Do the testing of
+Transfer
+transfer From
+approve
+increase allowance
+decrease allowance
 
 lockInvestorAccountByIssuer
 unlockInvestorAccountByIssuer
 
 updateLockupTimeAsIssuer
 updateLockupTimeAsInvestor
-
-Identify whats wrong with the parameter hours in updateLockupTimeAsInvestor
-
-1. Recieve as parameter an amount of time
-2. The smart contract stores the timestamp when it will unlock
-3. Transfer functions validate using a modifier that the current date is greater than the walletLockUpTime
-
-For investors the new time can not be less than the old time what it does is to increase the lockup time from the previous one
-
-
 
 
 

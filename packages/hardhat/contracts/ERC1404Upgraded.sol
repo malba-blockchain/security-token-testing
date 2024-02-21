@@ -684,7 +684,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     /////////////Overwrites to be ERC 1400 compliant/////////////
 
-
     function transferFrom(address from, address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the transfer
@@ -733,7 +732,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the approval
         require( 
@@ -751,7 +750,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
-    function increaseAllowance(address spender, uint256 addedValue) public virtual override returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the increase of allowance
         require( 
@@ -768,7 +767,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the decrease of allowance
         require( 
@@ -785,7 +784,6 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         return true;
     }
-
 
     /////////////ORACLE PRICE FEED FUNCTIONS//////////
 
