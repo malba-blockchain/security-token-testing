@@ -39,28 +39,7 @@ https://github.com/simple-restricted-token/simple-restricted-token/blob/master/c
 
 --------------TODO-------------- 
 
-Test every lockup function
-
-1. Add to accreditedwhitelist 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8
-2. Add to accreditedwhitelist 0x498C47066AdeB22Ba23953d890eD6b540411e350
-
-3. investFromMatic 9000000000000000000000 in tokens several times
-4. Transfer 1000000000000000000000000 to 0x498C47066AdeB22Ba23953d890eD6b540411e350
-
-Do the testing of
-Transfer
-transfer From
-approve
-increase allowance
-decrease allowance
-
-lockInvestorAccountByIssuer
-unlockInvestorAccountByIssuer
-
-updateLockupTimeAsIssuer
-updateLockupTimeAsInvestor
-
-
+Continue testing based on the functionalities list
 
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE
