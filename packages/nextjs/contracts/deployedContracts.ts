@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     ERC1404Upgraded: {
-      address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+      address: "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
       abi: [
         {
           inputs: [
@@ -456,6 +456,44 @@ const deployedContracts = {
             },
           ],
           name: "UpdateTokenOwnershipPercentageLimit",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "walletLockUpTime",
+              type: "uint256",
+            },
+          ],
+          name: "UpdatedLockupTimeAsInvestor",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "address",
+              name: "sender",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "walletLockUpTime",
+              type: "uint256",
+            },
+          ],
+          name: "UpdatedLockupTimeAsIssuer",
           type: "event",
         },
         {

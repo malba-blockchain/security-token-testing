@@ -90,6 +90,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     event UpdateTokenOwnershipPercentageLimit(uint256 _newTokenOwnershipPercentageLimit);
     event LockedInvestorAccount(address _investorAccount);
     event UnlockedInvestorAccount(address _investorAccount);
+    event UpdatedLockupTimeAsInvestor(address sender, uint256 walletLockUpTime);
+    event UpdatedLockupTimeAsIssuer(address sender, uint256 walletLockUpTime);
     event UpdatedMaticPriceFeedAddress(address _newMaticPriceFeedAddress);
 
     ////////////////// SMART CONTRACT CONSTRUCTOR //////////////////
@@ -361,22 +363,10 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     }
 
     function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToSend, address _tokenDestination) internal view returns (bool){
-        
-        console.log("_investorAddress");
-
-        console.log(_tokenDestination);
 
         uint256 newBalance = _totalTokensToSend + balanceOf(_tokenDestination);
 
-        console.log("newBalance");
-
-        console.log(newBalance);
-
         uint256 amountOfTokensLimit = (tokenTotalSupply * uint256(tokenOwnershipPercentageLimit)) /100;
-
-        console.log("amountOfTokensLimit");
-
-        console.log(amountOfTokensLimit);
 
         if(newBalance <= amountOfTokensLimit) {
             return true;
@@ -393,32 +383,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         //Calculate the total investment in USD and divide by 10**8
         totalInvestmentInUsd = SafeMath.div((SafeMath.mul(_amount, _currentCryptocurrencyPrice)), decimalsInMathOperation);
 
-        console.log("totalInvestmentInUsd");
-
-        console.log(totalInvestmentInUsd);
-
         //Calcuale the amount of tokens to return given the current token price and multiply it by 10**8
         totalTokensToReturn = SafeMath.div((SafeMath.mul(totalInvestmentInUsd, decimalsInMathOperation)), (tokenPrice));
-
-        console.log("tokenPrice");
-
-        console.log(tokenPrice);
-
-        console.log("decimalsInMathOperation");
-
-        console.log(decimalsInMathOperation);
-
-        console.log("totalTokensToReturn");
-
-        console.log(totalTokensToReturn);
-
-        console.log("minimumInvestmentAllowedInUSD");
-
-        console.log(minimumInvestmentAllowedInUSD);
-
-        console.log("availableTokensForInvestor");
-
-        console.log(balanceOf(address(this)));
 
         //Validate that the amount to invest is equal or greater than the minimum investment established in USD
         require(totalInvestmentInUsd >= minimumInvestmentAllowedInUSD, 
@@ -447,25 +413,21 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         //Calculate total tokens to return while validating minimum investment and if there are tokens left to sell
         (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) = calculateTotalTokensToReturn(msg.value, getCurrentMaticPrice());
-        console.log("Goes here 1");
+
         //If the amount of tokens to buy is greater than the maximum established, then validate if the investor is accredited
         validateMaximumInvestedAmountAndInvestorLimit(totalInvestmentInUsd, msg.sender);
-        console.log("Goes here 2");
 
         //Transfer MATIC to the treasury address
         bool successSendingMatic = payable(treasuryAddress).send(msg.value);
         require (successSendingMatic, "There was an error on sending the MATIC investment to the treasury");
-        console.log("Goes here 3");
-        //Transfer the token to the investor wallet
 
-        console.log("totalTokensToReturn");
-        console.log(totalTokensToReturn);
+        //Transfer the token to the investor wallet
         bool successSendingTokens = this.transfer(msg.sender, totalTokensToReturn);
         require (successSendingTokens, "There was an error on sending back the tokens to the investor");
-        console.log("Goes here 4");
+
         //Update the total amount of USD that a investor has deposited
         investorsWhitelist[msg.sender].totalUsdDepositedByInvestor = totalInvestmentInUsd;
-        console.log("Goes here 5");
+
         //Update the total amount of tokens that a investor has bought
         investorsWhitelist[msg.sender].totalTokensBoughtByInvestor = totalTokensToReturn;
 
@@ -484,7 +446,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_newLockedUpTimeInHours != 0, "Locking time must be greater than zero");
 
         //Get the hour format from solidity
-        uint256 hour = 1 minutes;
+        uint256 hour = 1 hours;
 
         //Calculate the lock up time to add in ours
         uint256 lockedUpTimeToAdd = _newLockedUpTimeInHours * hour;
@@ -501,6 +463,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         //Update the wallet lock up time based on the new lock time and the previous one, if there was none then that value is zero
         investorsWhitelist[msg.sender].walletLockUpTime = block.timestamp + lockedUpTimeToAdd + currentlockedTimeLeft;
+    
+        emit UpdatedLockupTimeAsInvestor(msg.sender, investorsWhitelist[msg.sender].walletLockUpTime);
     }
 
     /**
@@ -514,7 +478,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         require(_newLockedUpTimeInHours != 0, "Locking time must be greater than zero");
 
         //Get the hour format from solidity
-        uint256 hour = 1 minutes;
+        uint256 hour = 1 hours;
 
         //Calculate the lock up time to add in ours
         uint256 lockedUpTimeToAdd = _newLockedUpTimeInHours * hour;
@@ -531,6 +495,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         //Update the wallet lock up time based on the new lock time and the previous one, if there was none then that value is zero
         investorsWhitelist[_investorAdddress].walletLockUpTime = block.timestamp + lockedUpTimeToAdd + currentlockedTimeLeft;
+    
+        emit UpdatedLockupTimeAsIssuer(_investorAdddress, investorsWhitelist[msg.sender].walletLockUpTime);
     }
 
     /**
@@ -704,6 +670,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
+        
         return true;
     }
 
@@ -725,10 +692,8 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
         //Original transfer function code
         address owner = _msgSender();
-
-        console.log("ownerToSend");
-        console.log(owner);
         _transfer(owner, to, amount);
+
         return true;
     }
 
@@ -747,6 +712,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         //Original transfer function code
         address owner = _msgSender();
         _approve(owner, spender, amount);
+
         return true;
     }
 
@@ -813,6 +779,5 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
         ERC20Pausable._beforeTokenTransfer(from, to, amount);
     }
-
 
 }

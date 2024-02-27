@@ -4,35 +4,28 @@ Whitelisting for accredited investors DONE
 
 Whitelisting for non-accredited investors  DONE
 
-Transference only between whitelisted investors address  DONE
+Buying ONLY between whitelisted investors address DONE
 
-Token lockup periods in the wallet of the holder 
+Transference ONLY between whitelisted investors address  DONE
 
-Minting on vesting period enforced 
+Issuance of at least 1 share/token DONE
 
-Array
-IssuanceNumber - Date - Max Amount
-0 - in 1 year - 3B
-1 - in 2 years 1.2 B
-2 - in 3 years 4B
-3 - in 4 years 1.5 B
-4 - in 5 years 0.3 B
+Lockup of tokens in wallet from investor and issuer DONE
 
-Have a list of whitelisters
+Account lock and release DONE Properties walletLockUpTime, isLockedByInvestor and isLockedByIssuer of investor data
 
-Add whitelister
 
-Remove whitelister
+Have a list of whitelisters DONE Via grantRole/renounceRole of AccessControl module
 
-Burn tokens of a wallet (Burn From)
+Add whitelister DONE Via grantRole/renounceRole of AccessControl module
 
-Burn tokens in general
+Remove whitelister DONE Via grantRole/renounceRole of AccessControl module
 
-Not allow token divisibility nothing less than 1 share
+Burn tokens from an account who owns the tokens and has the burner role granted
 
-Ownership percentage restricted
+Ownership percentage restricted DONE Function tokenOwnershipUnderPercentageLimit
 
-Account lock and release
+Pauser role: Bottom switch  DONE Via ERC20Pausable module
 
-Pauser role: Bottom switch 
+
 
