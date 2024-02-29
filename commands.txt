@@ -36,10 +36,10 @@ Create new security token requirements DONE
 Add the code to a eth-scaffold framework 
 https://github.com/simple-restricted-token/simple-restricted-token/blob/master/contracts/mocks/BasicWhitelistTokenMock.sol
 
+Finish adding the natspec documentation for functionalities
+
 
 --------------TODO-------------- 
-
-Clean the code function by function
 
 
 0x350441F8a82680a785FFA9d3EfEa60BB4cA417f8 DEFAULT_ADMIN_ROLE

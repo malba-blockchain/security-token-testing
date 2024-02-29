@@ -24,50 +24,61 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     ////////////////// SMART CONTRACT VARIABLES //////////////////
 
+    // Stores the official documentation URL for the security token.
     string public officialDocumentationURL;
 
+    // Stores the official website URL for the token.
     string public officialWebsite;
 
+    // Stores the whitepaper URL for the token.
     string public whitepaperURL;
 
+    // Stores the token price in USD with 8 decimals
     uint256 public tokenPrice;
 
+    // Stores the minimum investment amount allowed in USD with no decimals
     uint256 public minimumInvestmentAllowedInUSD;
 
+    // Stores the maximum investment amount allowed in USD with no decimals
     uint256 public maximumInvestmentAllowedInUSD;
 
+    // Stores the total supply of tokens that can be minted, with the default decinals of totalSupply
     uint256 public tokenTotalSupply;
 
+    // Stores the maximum number of tokens that can be minted in a single issuance event with no decimals
     uint256 public maximumSupplyPerIssuance;
 
+    // Stores the maximum percentage of tokens a single address can hold with no decimals
     uint8 public tokenOwnershipPercentageLimit;
 
+    // Stores the address of the wallet that holds the project's funds.
     address public treasuryAddress;
 
-
-    //Issuance date => amount of tokens to issue
-    mapping(uint256 => uint256)[] public issuancePeriods;
-
+    // A mapping that associates an investor's address (address) with their `InvestorData` struct information. 
     mapping(address => InvestorData) public investorsWhitelist;
 
     struct InvestorData {
+        //Flag indicating whether the investor is accredited (true) or not (false).
         bool isAccreditedInvestor;
+        // Flag indicating whether the investor is non-accredited (true) or not (false).
         bool isNonAccreditedInvestor;
+        // Total number of tokens purchased by the investor.
         uint256 totalTokensBoughtByInvestor;
+        // Total amount of USD deposited by the investor at the time of each buy
         uint256 totalUsdDepositedByInvestor;
+        // Timestamp specifying when the investor's tokens are unlocked. Used to enforce lockup period for investors.
         uint256 walletLockUpTime;
+        // Flag indicating whether the investor has voluntarily locked their tokens (true) or not (false). Can be used for additional investment strategies.
         bool isLockedByInvestor;
+        // Flag indicating whether the issuer has locked the investor's tokens (true) or not (false). Used for compliance or security reasons.
         bool isLockedByIssuer;
     }
 
-    /**
-     * @dev Address of MATIC token price feed (Oracle) in the blockchain.
-     */
+ 
+    // Address of MATIC token price feed (Oracle) in the blockchain.
     address public maticPriceFeedAddress;
 
-    /**
-     * @dev Aggregator that allows asking for the price of crypto tokens.
-     */
+    // Aggregator that allows asking for the price of crypto tokens.
     AggregatorV3Interface internal dataFeedMatic;
     
 
@@ -75,29 +86,29 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     event AccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
     event AccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
+    event InvestFromMatic(address sender, uint256 maticAmount, uint256 totalInvestmentInUSD, uint256 tokensAmount);
+    event IssueTokens(address sender, uint256 amount);
+    event LockedInvestorAccount(address _investorAccount);
     event NonAccreditedInvestorAddedToWhiteList(address sender, address _investorAddress);
     event NonAccreditedInvestorRemovedFromWhiteList(address sender, address _investorAddress);
-    event UpdatedOfficialDocumentationURL(string _newOfficialDocumentationURL);
-    event UpdatedOfficialWebsite(string _newOfficialWebsite);
-    event UpdatedWhitepaperURL(string _newWhitepaperURL);
-    event IssueTokens(address sender, uint256 amount);
-    event InvestFromMatic(address sender, uint256 maticAmount, uint256 totalInvestmentInUSD, uint256 tokensAmount);
-    event UpdatedTokenPrice(uint256 _newTokenPrice);
-    event UpdatedMinimumInvestmentAllowedInUSD(uint256 _newMinimumInvestmentAllowedInUSD);
-    event UpdatedMaximumInvestmentAllowedInUSD(uint256 _newMaximumInvestmentAllowedInUSD);
-    event UpdatedTreasuryAddress(address _newTreasuryAddress);
     event TokensBurned(uint256 _amount);
-    event UpdateTokenOwnershipPercentageLimit(uint256 _newTokenOwnershipPercentageLimit);
-    event LockedInvestorAccount(address _investorAccount);
     event UnlockedInvestorAccount(address _investorAccount);
     event UpdatedLockupTimeAsInvestor(address sender, uint256 walletLockUpTime);
     event UpdatedLockupTimeAsIssuer(address sender, uint256 walletLockUpTime);
     event UpdatedMaticPriceFeedAddress(address _newMaticPriceFeedAddress);
+    event UpdatedMaximumInvestmentAllowedInUSD(uint256 _newMaximumInvestmentAllowedInUSD);
+    event UpdatedMinimumInvestmentAllowedInUSD(uint256 _newMinimumInvestmentAllowedInUSD);
+    event UpdatedOfficialDocumentationURL(string _newOfficialDocumentationURL);
+    event UpdatedOfficialWebsite(string _newOfficialWebsite);
+    event UpdatedTokenOwnershipPercentageLimit(uint256 _newTokenOwnershipPercentageLimit);
+    event UpdatedTokenPrice(uint256 _newTokenPrice);
+    event UpdatedTreasuryAddress(address _newTreasuryAddress);
+    event UpdatedWhitepaperURL(string _newWhitepaperURL);
 
     ////////////////// SMART CONTRACT CONSTRUCTOR //////////////////
 
     constructor(string memory name, string memory symbol, uint256 _tokensToIssue, address _defaultAdmin, address _pauser, 
-        address _minter, address _burner, address _whitelister, address _treasuryAddress, address _maticPriceDataFeedMock, uint256 _tokenTotalSupply, 
+        address _minter, address _burner, address _whitelister, address _treasuryAddress, address _maticPriceDataFeed, uint256 _tokenTotalSupply, 
         uint256 _maximumSupplyPerIssuance, uint256 _tokenPrice, string memory _officialWebsite, string memory _whitepaperURL,
         string memory _officialDocumentationURL, uint256 _minimumInvestmentAllowedInUSD, uint256 _maximumInvestmentAllowedInUSD,
         uint8 _tokenOwnershipPercentageLimit) 
@@ -109,28 +120,40 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _grantRole(BURNER_ROLE, _burner);
         _grantRole(WHITELISTER_ROLE, _whitelister);
 
+        //Minting initial tokens for the contract itself
         _mint(address(this), _tokensToIssue * (10**decimals()));
 
+        // Assigns the address that will hold project funds.
         treasuryAddress = _treasuryAddress;
 
-        maticPriceFeedAddress = _maticPriceDataFeedMock;
+        // Sets the address providing MATIC price data
+        maticPriceFeedAddress = _maticPriceDataFeed;
 
+        //Updates total token supply with provided value in base units.
         tokenTotalSupply = _tokenTotalSupply * (10**decimals());
 
+        // Sets the maximum tokens allowed in a single issuance.
         maximumSupplyPerIssuance = _maximumSupplyPerIssuance;
 
+        // Sets the price of a single token in USD
         tokenPrice = _tokenPrice;
 
+        // Sets the official website URL for the token.
         officialWebsite = _officialWebsite;
 
+        // Sets the whitepaper URL for the token.
         whitepaperURL = _whitepaperURL;
 
+        // Sets the official documentation URL for the token.
         officialDocumentationURL = _officialDocumentationURL;
 
+        // Sets the minimum investment amount in USD cents.
         minimumInvestmentAllowedInUSD = _minimumInvestmentAllowedInUSD;
 
+        // Sets the maximum investment amount in USD cents.
         maximumInvestmentAllowedInUSD = _maximumInvestmentAllowedInUSD;
 
+        // Sets the maximum percentage of tokens a single address can hold.
         tokenOwnershipPercentageLimit = _tokenOwnershipPercentageLimit;
 
         // Oracle on MATIC network for MATIC / USD
@@ -139,6 +162,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
 
     ////////////////// SMART CONTRACT FUNCTIONS //////////////////
 
+
+    /**
+    * @dev Adds an investor address to the accredited whitelist. Only addresses with the WHITELISTER_ROLE can call this function.
+    * @param _investorAddress The address of the investor to be added to the accredited whitelist.
+    */
     function addToAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
         
         // Ensure that the investor address to add is not the zero address
@@ -155,6 +183,10 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit AccreditedInvestorAddedToWhiteList(msg.sender, _investorAddress);
     }
 
+    /**
+    * @dev Removes an investor address from the accredited whitelist. Only addresses with the WHITELISTER_ROLE can call this function.
+    * @param _investorAddress The address of the investor to be removed from the accredited whitelist.
+    */
     function removeFromAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address is registered on the accredited whitelist
@@ -167,6 +199,10 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit AccreditedInvestorRemovedFromWhiteList(msg.sender, _investorAddress);
     }
 
+    /**
+    * @dev Adds an investor address to the non-accredited whitelist. Only addresses with the WHITELISTER_ROLE can call this function.
+    * @param _investorAddress The address of the investor to be added to the non-accredited whitelist.
+    */
     function addToNonAccreditedInvestorWhiteList(address _investorAddress) external onlyRole(WHITELISTER_ROLE){
         
         // Ensure that the investor address to add is not the zero address
@@ -183,6 +219,10 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit NonAccreditedInvestorAddedToWhiteList(msg.sender, _investorAddress);
     }
 
+    /**
+    * @dev Removes an investor address from the non-accredited whitelist. Only addresses with the WHITELISTER_ROLE can call this function.
+    * @param _investorAddress The address of the investor to be removed from the non-accredited whitelist.
+    */
     function removeFromNonAccreditedInvestorWhitelist(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address is registered on the non accredited whitelist
@@ -195,16 +235,26 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit NonAccreditedInvestorRemovedFromWhiteList(msg.sender, _investorAddress);
     }
 
+    /**
+    * @dev Updates the token ownership percentage limit. Only addresses with the DEFAULT_ADMIN_ROLE can call this function.
+    * @param _newTokenOwnershipPercentageLimit The new percentage limit to set (between 1 and 100).
+    */
     function updateTokenOwnershipPercentageLimit(uint8 _newTokenOwnershipPercentageLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
+        // Ensure that the new ownershop percentage limit is not zero and is less or equal than 100
         require(_newTokenOwnershipPercentageLimit!= 0 && _newTokenOwnershipPercentageLimit<=100, 
         "The new token ownership percentage limit must be between 1 and 100");
 
+        // Update the value of the token ownership percentage limit
         tokenOwnershipPercentageLimit = _newTokenOwnershipPercentageLimit;
 
-        emit UpdateTokenOwnershipPercentageLimit(_newTokenOwnershipPercentageLimit);
+        emit UpdatedTokenOwnershipPercentageLimit(_newTokenOwnershipPercentageLimit);
     }
 
+    /**
+    * @dev Locks the investor's own account. Only whitelisted investors can call this function.
+    * @role investorIsOnWhiteList Only whitelisted investors can call this function.
+    */
     function lockInvestorAccountByInvestor() external investorIsOnWhiteList {
 
         // Ensure that the investor address to lock is not currently locked
@@ -217,6 +267,10 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit LockedInvestorAccount(msg.sender);
     }
 
+    /**
+    * @dev Unlocks the investor's own account, which was previously locked by the investor themself.
+    * @role investorIsOnWhiteList Only whitelisted investors can call this function.
+    */
     function unlockInvestorAccountByInvestor() external investorIsOnWhiteList {
 
         // Ensure that the investor address to unlock is not currently unlocked
@@ -229,6 +283,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit LockedInvestorAccount(msg.sender);
     }
 
+    /**
+    * @dev Locks an investor account by the issuer.
+    * @param _investorAddress The address of the investor account to lock.
+    * @role WHITELISTER_ROLE Only addresses with the WHITELISTER_ROLE can call this function.
+    */
     function lockInvestorAccountByIssuer(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address to lock is not the zero address
@@ -244,6 +303,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit LockedInvestorAccount(_investorAddress);
     }
 
+    /**
+    * @dev Unlocks an investor account that was previously locked by the issuer.
+    * @param _investorAddress The address of the investor account to unlock.
+    * @role WHITELISTER_ROLE Only addresses with the WHITELISTER_ROLE can call this function.
+    */
     function unlockInvestorAccountByIssuer(address _investorAddress) external onlyRole(WHITELISTER_ROLE) {
 
         // Ensure that the investor address to unlock is not the zero address
@@ -336,6 +400,9 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         }
     }
 
+    /**
+    * @dev Restricts function execution to whitelisted investors (accredited or non-accredited).
+    */
     modifier investorIsOnWhiteList {
 
         // Ensure that the sender's address is on the whitelist as accredited or non accredited investor
@@ -344,8 +411,11 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
             investorsWhitelist[msg.sender].isNonAccreditedInvestor == true), 
             "Investor address is not in the investor whitelist");
         _;
-    }
-
+    }    
+    
+    /**
+    * @dev Ensures the message sender's (investor's) wallet is not locked before proceeding with a function call.
+    */
     modifier investorWalletIsNotLocked {
 
         // Ensure that the sender's address is not locked by the investor
@@ -362,19 +432,35 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         _;
     }
 
+    /**
+     * @dev Checks if transferring a certain amount of tokens to a specific address would exceed the allowed ownership percentage limit.
+     * @param _totalInvestmentInUsd The total amount of tokens to be sent.
+     * @param _investorAddress The address of the recipient.
+     */
     function tokenOwnershipUnderPercentageLimit(uint256 _totalTokensToSend, address _tokenDestination) internal view returns (bool){
 
+        //Calculate the new balance based on the tokens to send plus the current balance of tokens of that address
         uint256 newBalance = _totalTokensToSend + balanceOf(_tokenDestination);
 
+        //Calculate the specific limit amount of tokens that an address can hold
         uint256 amountOfTokensLimit = (tokenTotalSupply * uint256(tokenOwnershipPercentageLimit)) /100;
 
+        //Validate if the new balance is under that limit, return true
         if(newBalance <= amountOfTokensLimit) {
             return true;
         }
 
+        //If the new balance is not under that limit, return false
         return false;
     }
 
+    /**
+    * @dev Calculates the total tokens to return based on the investment amount and current cryptocurrency price, enforcing various restrictions.
+    * @param _amount The amount of cryptocurrency to invest.
+    * @param _currentCryptocurrencyPrice The current price of the cryptocurrency in USD cents (with 8 decimals).
+    * @return totalInvestmentInUsd The total investment in USD cents (with 18 decimals).
+    * @return totalTokensToReturn The total number of tokens to be returned to the investor.
+   */
     function calculateTotalTokensToReturn(uint256 _amount, uint256 _currentCryptocurrencyPrice) public view returns (uint256 totalInvestmentInUsd, uint256 totalTokensToReturn) {
         
         //Decimals in math operation. Because the cryptocurrency price feed and the token price comes with 8 decimals
@@ -470,7 +556,7 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
     /**
      * @dev Function to update the lockup time of a wallet as the issuer
      * @param _investorAdddress The address of the investor wallet that will be locked up 
-     @param _newLockedUpTimeInHours The time a investor wallet is going to be locked up
+     * @param _newLockedUpTimeInHours The time a investor wallet is going to be locked up
      */
     function updateLockupTimeAsIssuer(address _investorAdddress, uint256 _newLockedUpTimeInHours) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
@@ -634,22 +720,39 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         emit UpdatedMaticPriceFeedAddress(_newMaticPriceFeedAddress);
     }
 
+    /**
+    * @dev Burns a specified amount of tokens from the message sender's address. Only accounts with the BURNER_ROLE can call this function.
+    * @param _amount The amount of tokens to be burned.
+     */
     function burnTokens(uint256 _amount) public virtual onlyRole(BURNER_ROLE) {
         _burn(_msgSender(), _amount);
 
         emit TokensBurned(_amount);
     }
 
+    /**
+    * @dev Pauses the contract's functionality. Only accounts with the PAUSER_ROLE can call this function.
+     */
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /**
+    *@dev Unpauses the contract's functionality. Only accounts with the PAUSER_ROLE can call this function.
+    */
     function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
     /////////////Overwrites to be ERC 1400 compliant/////////////
 
+    /**
+    * @dev Transfers tokens on behalf of another address (`from`) to a recipient (`to`), enforcing various restrictions.
+    * @param from The address of the token sender.
+    * @param to The address of the token recipient.
+    * @param amount The amount of tokens to be transferred.
+    * @return true if the transfer was successful, false otherwise.
+    */
     function transferFrom(address from, address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the transfer
@@ -674,6 +777,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
+    /**
+    * @dev Transfers tokens from the message sender (`owner`) to a recipient (`to`), enforcing various restrictions.
+    * @param to The address of the token recipient.
+    * @param amount The amount of tokens to be transferred.
+    * @return true if the transfer was successful, false otherwise.
+    */
     function transfer(address to, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
         
         //Validate the destination address in on the whitelist before doing the transfer
@@ -697,6 +806,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
+    /**
+    * @dev Approves an address (`spender`) to spend a specified amount of tokens on behalf of the message sender (`owner`), enforcing whitelist and ownership limit restrictions.
+    * @param spender The address to be approved to spend tokens.
+    * @param amount The amount of tokens the spender will be allowed to spend.
+    * @return true if the approval was successful, false otherwise.
+    */
     function approve(address spender, uint256 amount) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the approval
@@ -716,6 +831,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
+    /**
+    * @dev Increases the allowance of an address (`spender`) to spend tokens on behalf of the message sender (`owner`), enforcing whitelist and ownership limit restrictions.
+    * @param spender The address to be approved for increased spending.
+    * @param addedValue The additional amount of tokens the spender is allowed to spend.
+    * @return true if the allowance increase was successful, false otherwise.
+    */
     function increaseAllowance(address spender, uint256 addedValue) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the increase of allowance
@@ -733,6 +854,12 @@ contract ERC1404Upgraded is ERC20, ERC20Pausable, Ownable, AccessControl, Reentr
         return true;
     }
 
+    /**
+    * @dev Decreases the allowance of an address (`spender`) to spend tokens on behalf of the message sender (`owner`), enforcing whitelist restrictions.
+    * @param spender The address whose spending allowance is being decreased.
+    * @param subtractedValue The amount of tokens to be removed from the spender's allowance.
+    * @return true if the allowance decrease was successful, false otherwise.
+    */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override investorWalletIsNotLocked returns (bool) {
 
         //Validate the destination address in on the whitelist before doing the decrease of allowance
